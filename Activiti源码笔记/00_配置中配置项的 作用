@@ -1,0 +1,168 @@
+processEngineName    设置流程引擎的name值
+Map<Object, Object> beans1 = springProcessEngineConfiguration.getBeans();
+使用此() 就可以获取 流程配置文件定义的所有bean实例对象 ,
+
+
+       if (processEngineConfiguration instanceof SpringProcessEngineConfiguration) { // remark: any config can be injected, so we cannot have SpringConfiguration as member
+            SpringProcessEngineConfiguration engineConfiguration = (SpringProcessEngineConfiguration) processEngineConfiguration;
+            if (engineConfiguration.getTransactionManager() != null) {
+                processEngineConfiguration.setTransactionsExternallyManaged(true);
+            }
+        }
+    }
+
+只要set事务管理器, 那么 setTransactionsExternallyManaged 属性值就自动为true
+
+
+
+configurators  设置配置器
+enableConfiguratorServiceLoader  serviceClassLoader 方式使用配置器  该值默认为true
+
+
+
+
+jobExecutorActivate   作业执行器
+asycExecutorActivate  异步作业执行器
+
+
+getSchemaCommandConfig ()  这个 不用自己set  内部会自己set  和 建表策略 那里会用到 这个配置
+
+
+processValidator()  BPMNMOdl 校验器
+
+
+
+//		springProcessEngineConfiguration.setEnableSafeBpmnXml(true);   建议开启  默认为fasle
+
+因为 Activiti引擎 解析流程文档时 会立即验证流程文档中定义的元素是否符合BPMN20.XSD 文件的约束要求 方便急躁发现错误
+
+
+eventDispatcher 注入自定义事件转发器
+
+开始事件转发器  默认为true
+
+eventListeners  List 集合   全局事件监听器
+
+typedEventListeners  Map结构   具体类型的事件监听器
+
+        key是 具体的事件类型  value 对应具体类型的事件监听器
+
+
+
+enableDatabaseEventLogging 开启事件转发器
+
+
+  protected BpmnDeployer bpmnDeployer;    // 默认的部署器
+  protected BpmnParser bpmnParser;
+  protected List<Deployer> customPreDeployers; //前置部署器
+  protected List<Deployer> customPostDeployers;//后置
+  protected List<Deployer> deployers;  //部署器
+  protected DeploymentManager deploymentManager; //部署管理器
+
+  protected int processDefinitionCacheLimit = -1; // By default, no limit
+  protected DeploymentCache<ProcessDefinitionEntity> processDefinitionCache;
+  protected int bpmnModelCacheLimit = -1; // By default, no limit
+  protected DeploymentCache<BpmnModel> bpmnModelCache;
+  protected int processDefinitionInfoCacheLimit = -1; // By default, no limit
+  protected ProcessDefinitionInfoCache processDefinitionInfoCache;
+
+  protected int knowledgeBaseCacheLimit = -1;
+  protected DeploymentCache<Object> knowledgeBaseCache;
+
+
+ protected boolean isCreateDiagramOnDeploy = true;
+  protected BpmnParseFactory bpmnParseFactory;
+
+  protected int executionQueryLimit = 20000;
+  protected int taskQueryLimit = 20000;
+  protected int historicTaskQueryLimit = 20000;
+  protected int historicProcessInstancesQueryLimit = 20000;
+
+processDiagramGenerator 注入自定义图片生成类
+
+enableProcessDefinitionInfoCache  开启节点缓存  默认是关闭的
+节点缓存会操作 ACT_PROCDEF_INFO 表  此表的INFO_JSON_ID 关联ACT_GE_BYTEARRAY 的主键ID 列
+
+
+
+  protected boolean asyncExecutorEnabled;  是否开启 异步作业执行器 功能  默认为fasle 则初始化作业执行器
+  通过此() 可以看出  ,对于 开发人员来说 作业执行器和 异步作业执行器 只能选用一个
+
+
+asyncExecutorEnabled
+jobExecutor
+jobExecutorActivate   只有此属性值为true  引擎才会开启 作业执行器功能
+customRejectJobsHandler
+  protected List<JobHandler> customJobHandlers;  //自定义任务处理器  用来替换 引擎默认的作业处理器
+getAsyncJobLockTimeInMillis  默认值 5min中
+异步作业执行器优先级最高, 如果开启了异步作业执行器功能, 那么异步节点默认的到期时间为5min
+
+
+
+
+
+
+
+
+setCsutomDefaultDpmnParseHandlers  自定义默认对象解析器
+setPostBpmnParseHandlers()  后置
+setPreBpmnParseHandlers()  前置
+
+
+
+commandInvoker 设置自定义命令调度这, 进而对执行的命令进行控制
+commandContextFactory 设置自定义命令上下文工厂
+
+commandInterceptors 自定义命令拦截器集合
+customPreCommandInterceptors  前后置 命令拦截器
+customPostCommandInterceptors
+
+commandExecutor 自定义命令拦截器链
+
+
+
+transactionsExternallyManaged  事务 交给Spring管理 默认为true
+
+getLockTimeAsyncJobWaitTime  默认60
+
+
+    行为类 工厂
+    判断  是否自定义了 行为类 工厂,
+    最简单的方法就是 定义一个类 继承  DefaultActivityBehaviorFactory 然后  设置   activityBehaviorFactory 开关属性即可
+
+
+
+dataSource 数据源
+
+databaseType  DB类型
+
+sqlSessionFactory  自定义sqlsessionFactory
+* 自定义映射类 (注解方式)  可以直接设置 CustomMybatisMappers 开关属性
+
+customSessionFactories  自定义SqlSession工厂
+  * Map结构 Key为 getSessionType()   value是  SessionFactory
+  * 可以自定义  替换内置的即可
+
+开启批量插入   isBulkInsertEnabled  批量插入
+批量插入条数的阈值,  设置  maxNrOfStatementsInBukInsert   默认为100   可以为1000 甚至更多
+
+
+idBlockSzie  默认2500
+commandExecutor
+commandConfig
+idGeneratorDateSource    配置任意数据源
+idGeneratorDataSourceJndiName JNDI方式配置数据源
+
+customPreVariableTypes 前置变量类型处理
+customPostVariableTypes 后置变量类型处理
+maxLengthStringVariableType  变量类型的长度
+
+
+
+
+
+
+
+
+
+

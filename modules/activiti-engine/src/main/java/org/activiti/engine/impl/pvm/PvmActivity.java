@@ -1,0 +1,36 @@
+/* Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.activiti.engine.impl.pvm;
+
+import java.util.List;
+
+
+/**
+ * @author Tom Baeyens
+ *  在父类的基础上 增加了 获取节点 入线 出线 以及获取当前节点是否支持异步操作的()
+ */
+public interface PvmActivity extends PvmScope {
+  
+  boolean isAsync();
+  
+  boolean isExclusive();
+
+  PvmScope getParent();
+
+  List<PvmTransition> getIncomingTransitions();
+
+  List<PvmTransition> getOutgoingTransitions();
+  
+  PvmTransition findOutgoingTransition(String transitionId);
+}

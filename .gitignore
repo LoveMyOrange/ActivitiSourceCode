@@ -1,0 +1,12 @@
+target
+*.iml
+*.ipr
+*.iws
+.idea
+.classpath
+*target/
+.project
+.settings
+.DS_Store
+*.bpmn/
+/userguide/src/en/index.html

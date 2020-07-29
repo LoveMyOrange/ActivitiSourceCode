@@ -1,0 +1,378 @@
+ *  负责 更新历史环节表   ACT_HI_ACTINST中的 任务节点处理人 对应 该表的 ASSIGNEE_列
+ */
+public class UserTaskAssignmentHandler implements TaskListener {
+
+  public void notify(DelegateTask task) {
+   Context.getCommandContext().getHistoryManager()
+     .recordTaskAssignment((TaskEntity) task);
+  }
+
+
+ * 负责更新 ACT_HI_ACTINST 表中的任务ID 值
+ */
+public class UserTaskIdHandler implements TaskListener {
+
+  public void notify(DelegateTask task) {
+    Context.getCommandContext().getHistoryManager()
+      .recordTaskId((TaskEntity) task);
+  }
+
+
+   * 负责 更新 ACT_HI_PROCINST 表中的删除原因, (非必须) 结束时间,节点持续时间 3个字段的值
+   */
+  public class ActivityInstanceEndHandler implements ExecutionListener {
+
+    public void notify(DelegateExecution execution) {
+      Context.getCommandContext().getHistoryManager()
+        .recordActivityEnd((ExecutionEntity) execution);
+    }
+
+
+ *  负责将 历史数据插入 到 ACT_HI_ACTINST 表中
+ */
+public class ActivityInstanceStartHandler implements ExecutionListener {
+
+  public void notify(DelegateExecution execution) {
+    Context.getCommandContext().getHistoryManager()
+      .recordActivityStart((ExecutionEntity) execution);
+  }
+
+ * 负责将开始信息的信息插入到 ACT_HI_ACTINST 表中
+ */
+public class StartEventEndHandler implements ExecutionListener {
+
+  public void notify(DelegateExecution execution) throws Exception {
+    String activityId = ((ExecutionEntity) execution).getActivityId();
+
+    Context.getCommandContext().getHistoryManager()
+      .recordStartEventEnded((ExecutionEntity) execution, activityId);
+  }
+
+ * 负责更新ACT_HI_PROCINST 表中的数据
+ */
+public class ProcessInstanceEndHandler implements ExecutionListener {
+
+  public void notify(DelegateExecution execution) {
+    Context.getCommandContext().getHistoryManager().recordProcessInstanceEnd(
+            execution.getProcessInstanceId(), ((ExecutionEntity) execution).getDeleteReason(), ((ExecutionEntity) execution).getActivityId());
+  }
+}
+
+
+
+启动流程实例 内部CMD    (职责就是 将流程实例数据复制一份然后将其添加到会话缓存, 引擎最终将该会话缓存中的数据添加到ACT_HI_PROCINST 表中 )
+    //将已知属性值添加到会话缓存中 ,引擎最终会将 会话缓存中的数据刷新到 ACT_HI_PROCINST 表中
+    Context.getCommandContext().getHistoryManager()
+      .recordProcessInstanceStart(processInstance);
+
+更改流程实例名称
+    if (processInstanceName != null) {
+      processInstance.setName(processInstanceName);
+      commandContext.getHistoryManager().recordProcessInstanceNameChange(processInstance.getId(), processInstanceName);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

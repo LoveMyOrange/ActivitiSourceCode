@@ -1,0 +1,8 @@
+1) 虽然节点缓存虽然生效了
+                                                    但是
+                                                     我有的命令类  比如更改了DB的 数据 比如 任务的分类,  然后 缓存会修改吗???
+                                                     不会吧
+2) 关于命令类出错  我是否应该用 commandContext 记录异常数据呢 ???
+                                            CommandContextInterceptor 类的execute() 就是这么做的
+
+

@@ -1,0 +1,1495 @@
+开始编译源码:
+    git clone https://github.com/Activiti/Activiti.git
+
+从码云下载 Activiti.5.22源码
+https://gitee.com/hirsi-he/Activiti-activiti-5.22.0?_from=gitee_search
+
+给自己的建议:
+    下载的别人东西,对自己有用处,不打赏就算了(有的没有打赏方式),但是一定要给Star,
+    毕竟别人的东西对你有帮助,
+    因为臭名昭著的FastJSON居然20Kstar, 而 mybatis才 10几K
+    我想这8000程序员 一定学过mybatis, 却不给mybatis star 啧啧啧
+    怪不到成为不了强者 ...... 活该 ......
+
+
+
+  Activiti源码  目录如下:
+        1)distro 使用Ant 工具下载文档资料以及将Activiti项目打包
+        2)README.md 记录Activiti团队的JIRA 和QA地址
+        3)eclipse Activiti使用的Eclipse模板文件
+        4)modules 该文件夹下存储了Activiti项目所有模块的Java源文件
+        5)qa 一些通用的流程配置文件样例
+        6) scripts: Linux平台下的一些启动脚本文件
+        7)userguide 用户操作手册 需要使用Asciidoctor 工具生成
+        8)pom.xml 所有Maven工程的parent Activiti工程依赖的第三方程序包都定义在该文件中
+
+开始编译 mvn install   用IDEA   跳过 test模块
+以Activiti-engine 的源码工程进行相关说明
+    src/main/java 用于存放项目的核心实现逻辑代码
+    src/main/resources 用于存储配置文件
+    src/test/java 对核心代码进行单元测试
+    src/test/resources 存储对核心代码进行单元测试时需要使用的配置文件
+
+
+Activiti源码下载好之后 ,可以查看 modules\activiti-engine 模块中的 src/main/resources文件夹,
+该文件夹中存储了流程引擎操作DB 需要的DDL脚本
+
+create 创建 数据库,表视图 ,索引的脚本, 形如activiti,db2.create.engine.sql 其中 db2 代表操作的数据库类型
+drop  删除DB 视图,索引的脚本, 形如:activiti,db2.drop.engine.sql
+upgrade 升级DB 视图,索引的脚本, 形如  activiti,db2.upgradestep.53.to.54. engine.sql
+        其中53对应引擎的版本5.13 54对应引擎升级到的版本 5.14
+mapping :
+        由于Activiti底层使用MyBAtis 操作DB  因此该文件下对应MyBatis框架需要的所有的映射文件
+
+
+以activiti.db2.create.history.sql 脚本为例讲解
+
+activiti  工作流引擎的标识
+db2  数据库厂商标识 MYSQL H2 Oracle PostgreSQL
+create : 创建数据库表的操作 对应有 drop upgradestep 标识符号, 操作时选择对应的即可
+engine 脚本类型 分为以下三种
+    engine 主要用于创建核心表  例如ACT_RU* 表等
+    history 历史表 ACT_HI*
+    identity 用户表
+
+引擎为何需要对以上三个脚本文件分别定义??? 很简单, 因为核心表(engine)是必须要使用的
+    而历史表 (history) 用户表(identity) 是选用的 ,所以需要区分
+
+
+
+关于Activiti的Eclipse 流程设计器(Eclipse中  叫做 Activiti Designer)
+    在5.8版本之前流程设计文件的后缀为 .activiti
+    比如流程文档名称为my.activiti    则保存该文件之后会自动生成my.bpmn20.xml
+    5.9之后 Activiti废弃了这一做法, 流程文档的后缀修改为.bpmn
+    如何兼容这两个版本???
+       直接将my.bpmn20.xml文件名称修改为bpmn  然后将my.activiti 文件删除即可
+       因为这两个文件的内容都是相同的,只是文件的后缀不同而已, 这种()只适用于项目中流程比较少的情况
+       如果项目有成千上万个呢? 上述() 显然不适用, 可以自定义一个部署器 用来兼容老版本即可     让activiti后缀也可以部署
+
+
+
+
+关于getDefaultProcessEngine 实例化流程引擎的过程  但是存在两个缺陷
+activiti.cfg.xml 或者activiti-context.xml 文件必须位于项目的classpath根目录中 否则加载不到
+2) 默认情况下 activiti.cfg.xml 文件中流程引擎配置类的bean的id值 必须是processEngineConfiguration
+
+问题?
+    配置文件的路径可以灵活变动吗?
+    名称可以修改吗?
+    bean的id值 可以是任意值吗?
+
+
+
+-------------------->>>>>>>   关于  Activiti 的整体步骤-------------------------------->>>>>>>>>
+
+绘制流程文档 定义的元素需要遵循 BPMN2.0 规范,    此规范将所有的流程定义元素抽象提取为三大要素
+
+Event(事件)  流程的创建,  流转 结束  等 都需要 事件的支持  ,
+        例如 在流程文档绘制阶段, 定义开始节点 和结束节点 是一个必不可少的环节,
+        可以通过事件机制 为工作流机制 增加 辅助功能
+
+GateWay(网关)   所谓网关 就是用来辅助决定流程实例 最终流转的目的地, 可以用来并行执行节点,
+              也可以作为聚合 或者条件分支使用,   常用的 网关类型 有排他网关 并行网关, 兼容网关 三种
+Activities(活动) 有生命周期的元素 或者节点 都可以称之为 活动 ,例如  任务节点 子流程, 引用流程 等
+            活动节点 可以作为 任何连线元素 的源头  或者 目标
+
+
+通俗易懂的例子
+        可以把流程文档的定义 过程 想象为 一个水流管道
+        水流的发源地, 目的地 可以理解为 事件
+        水流的分支 或者聚合 都可以理解为网关,
+        水流 途径的节点 统称为 活动 ,
+        水流 途径的管道 则可以理解为连线
+        网关和连线 最终决定 水流的 宏观走向 以及运动轨迹
+
+
+
+Activiti  元素 解析 的功能 架构设计图
+
+
+    元素定义层
+            任务  事件 网关, process
+
+        此层完全交给客户端, 开发人员可以结合自己的业务场景组装一系列元素 ,最终完成流程文档的定义工作
+        流程文档定义完毕之后 就可以直接调用 元素解析器 实现流程文档解析工作
+    元素解析层
+            解析器初始化                              解析器解析                       结果映射
+            任务解析器                               元素查找                        结果映射
+            事件解析器                               元素解析
+            网关解析器                               子元素解析
+                .....                               自定义元素解析                     数据拷贝
+
+        负责定位流程文档, 初始化元素解析器(包括子元素)  加载自定义的元素解析器, 查找元素解析器, 最终将需要的
+        解析的元素以及属性进行解析, 并且封装映射为引擎中的一个个实体对象
+    基础支撑层
+                元素配置                元素解析器   元素属性承载类,                    自定义元素解析器
+        基础支撑层
+           DB 连接管理事务管理 等 Activiti 将这些公用组件抽取出来作为 基础模块使用
+           为上层的元素解析层提供基础服务支撑
+
+
+
+
+元素  与 元素属性承载类  以及元素解析器的对应关系
+
+
+
+在元素解析的同时, 需要将已经解析完毕的属性值 封装 到指定的类中
+
+
+比如
+
+endEvent                    EndEvent                EndEventXMLConverter
+
+
+
+所有元素的属性id值必须在流程文档中全局唯一
+
+
+
+
+1)
+convertToBpmnModel 都干了什么事情??
+  BpmnXMLConverter bpmnXMLConverter = new BpmnXMLConverter(); // 实例化此类
+              BufferedInputStream inputStream = FileUtil.getInputStream(new File(resource));
+              InputStreamSource inputStreamSource = new InputStreamSource(inputStream);
+              BpmnModel bpmnModel = bpmnXMLConverter.convertToBpmnModel(inputStreamSource, true, true, "UTF-8");
+
+
+
+目前 Activiti 哪些元素支持扩展属性????
+        有3个
+        根元素 definitions
+        任务节点 userTask
+        流程元素 process
+
+
+不管解析何种类型的子元素 , 都需要将元素解析之后的结果 添加到 父元素parseElement中
+
+sparelement 是哪个对象的呢???
+parseChildElement 是由哪一个对象调用的呢???
+很显然 该() 有具体解析类的实例对象进行调用
+
+比如开始解析任务节点, 则任务节点的解析类 UserTasXMLConverter解析任务节点时就会调用 此方法进行子元素解析
+
+此时 parseChildElement 对象 就是 UserTaskXMLConverter 对象
+
+
+
+
+流程文档中的三大要素 都可以定义执行监听器 和 任务监听器 (仅限于 在任务节点上 定义
+
+
+监听器 通常作为 扩展元素  extensionElement的子元素进行定义 ,
+执行监听器 以及 任务监听器的解析器 分别为
+ExecutionListenerParser  和 TaskListenerParser  都继承了 BaseChildElementParser  并且在父类中统一调度
+
+既然 监听器通常作为 extensionElement 的子元素存在
+所以首先找到 extensionElement 元素的解析器
+ExtensionElementParser
+
+
+
+
+关于黑名单机制
+
+   但是 只有 process userTask  definitions 元素解析的时候 Activiti 才会使用 黑名单机制 对自定义属性进行解析和存储
+   *      其他并不可以的,
+   *      所以如果期望在其他元素中使用自定义属性, 如何操作???
+
+
+
+
+最新发现  果然
+
+
+ 如果在开始节点 添加了 扩展属性,   那么  果然是不行的 , 因为 startEvent 没有黑名单机制
+ 所以 需要同时 给开始节点 写一个 XMLConverter
+
+并不需要给UserTask节点 写XMLConverter
+
+ 
+
+		那么结论是
+		如果 开发人员定义了 一个 全局事件监听器 A   和 具体类型的事件监听器B   分别对TASK_CREATED 的事件进行监听处理
+		则首先执行全局事件监听器A 然后执行具体类型的事件监听器B
+		同一个事件 可以对应多个 事件监听器
+
+
+
+
+
+
+
+部署一个bpmn文件的   整体  断点  走一遍
+
+DeployCmd
+        DeploymentEntity deployment = deploymentBuilder.getDeployment();
+            deployment 对象中的值
+                isNew 为fasle
+                deployedAtrifacts 为 null
+
+            deploymentBuilder 对象中的值
+                  protected boolean isBpmn20XsdValidationEnabled = true;
+                  protected boolean isProcessValidationEnabled = true;
+                  protected boolean isDuplicateFilterEnabled = false;
+
+ if (deploymentBuilder.getProcessDefinitionsActivationDate() != null) {
+      scheduleProcessDefinitionActivation(commandContext, deployment);
+    } //这个括号 走完之后 到了
+
+    preDeployer
+
+    然后走到了 BpmnDeployer
+
+
+
+
+
+
+为什么要用节点缓存???  (Activiti5.19 引入)
+    比如 流程文档运行了一端之后 ,, 想修改任务节点名称 分类 处理人 等等等...
+
+    最简单的办法是 直接修改 流程文档 不合理的地方 然后再次部署流程文档 并且重新启动新的流程水利
+
+    但是如果是 仅仅为了 修改任务节点的信息 就重新部署流程文档, 难免得不偿失,
+    如果需要频繁的修改任务节点的信息 ?? 都需要重新部署 吗?? 显然 不合理
+
+    节点缓存 应运而生
+
+    该类负责 管理流程文档中 节点 (任务节点 ,服务任务节点) 的定义信息,
+    该 缓存类 和其他缓存类一样需要交给 DeploymentManager 进行管理, 内部使用Map 管理缓存数据
+    此类 虽然 解决了缓存节点定义信息的问题, 但是 还有两个弊端
+    1) 缓存的插入以及更新问题,
+            节点缓存类中并没有提供更新节点缓存的() ,仅仅是在流程文档部署的时候才会对节点缓存数据进行初始化
+
+        如果启动流程实例的同时, 缓存的流程定义实体对象的数据 丢失 ,那么引擎会再次执行流程文档的部署操作
+        从而引起节点缓存 重新添加,
+    2) Map 持久化, 因为在内存中 重启或者宕机 缓存丢失
+
+
+
+
+
+节点缓存处理的流程
+       起点:  部署流程 或者  缓存丢失
+1)   addDefinitionInfoToCache() -->>  去查找DB
+2)  addDefinitionInfoToCache() 查到 然后 更新缓存
+3) createlocalizationValues()  获取缓存
+4) createlocalizationValues() 解析流程文档
+5)  createlocalizationValues()  更新DB
+
+如果部署流程文档 或者运转流程实例时流程定义缓存丢失, 则需要执行上述的流程
+
+首先  addDefinitionInfoToCache() 会从DB中查找节点缓存数据,
+不管是否查询到 都会 将其更新缓存中,  看到这里的处理逻辑
+    疑问::::  如果DB中没有查找到 怎么更新缓存呢???
+
+    首先明白一个问题 ,
+
+    缓存中的数据是 ProcessDefinitionInfoCacheObject 对象
+    因为 ,  createlocalizationValues() 在处理过程中 并没有对该对象进行非空校验,
+    因此即使 缓存中没有数据 , 也需要实例化一个  ProcessDefinitionInfoCacheObject
+    这样才可以保证  createlocalizationValues() 执行时不会博爱错
+
+    这样的设计 实际上Activiti的一个漏洞导致的, 因此使用的时候要多加小心
+
+createlocalizationValues() 处理逻辑如下:
+    1) 从缓存中获取数据
+    2) 解析流程文档中定义的缓存数据
+    3) 对比以上两者数据,如果两者数据内容不一致,则首先将两者数据进行合并,然后将合并之后的数据更新到DB
+
+
+    节点缓存使用误区
+           自定义节点缓存类之前 ,首先考虑几个问题
+
+            1)自定义的的节点缓存类如何替换引擎默认的节点缓存类 ???
+
+    能否直接设置 ProcessEngineConfigurationImpl 对象中的 processDefinitionInfoCache 属性值呢???
+        没有
+    那么应该如何做???
+        自定义一个配置类 继承 SpringProcessEngineConfiguration  从而完成 对 processDefinitionInfoCache 复制操作
+
+            2) 命令执行器如何注入之定义节点缓存类呢???
+
+        在ProcessDefinitionInfoCache 类的构造中 需要 一个输入参数 ,
+        该参数的类型是 CommandExecutor, 因此自定义节点缓存类
+        在继承ProcessDefinitionInfoCache类的同时 必须显式调用其父类的构造()
+
+        为了确保父类不被破坏,能继续独立运行, 所以需要想尽一切办法获取CommandExecutor对象并将其传递给父类
+
+        public MyProcessDefinitionInfoCache(CommandExecutor ce){
+            super(ce);
+        }
+
+        那么问题来了, 如果客户端使用Spring 进行bean的实例化工作 ,
+        CommandExecutor对象作为 流程引擎配置类中的属性存在 如何获取??????
+            因为CommandExecutor 类的实例化工作完全由引擎内部实现,
+            很显然, 通过配置文件方式 将 该自定义节点缓存类 注入到ProcessEngineConfigurationImpl类中有点不大可能实现
+
+            既然 不好实现 换一个思路
+            Activiti的配置器     因为CommadContext 可以通过流程引擎配置类实例对象直接获取
+
+   3) ProcessDefinitionInfoCacheObject 类
+            因为 ProcessDefinitionInfoCache 默认将节点缓存数据,封装到了        ProcessDefinitionInfoCacheObject
+
+            该类封装了 流程定义id 节点版本信息, 以及节点缓存数据对应的ObjectNode
+            由于Activiti在定义             ProcessDefinitionInfoCacheObject 类时没有实现Seriailble 接口
+            所以使用redis 存储      ProcessDefinitionInfoCacheObject 对象肯定会报错
+            因此需要自定义一个缓存数据存储类, 并实现该类 实例对象 和 ProcessDefinitionInfoCacheObject
+            实例对象之间相互转换
+
+    4) createlocalizationValues() 只会更新DB中的节点缓存数据 而不会更新缓存中的数据, 也是Activiti的Bug
+
+    节点缓存类完全不符合Activiti的一贯设计,  因为Activiti 的一贯做法就是将功能抽象为接口并提供默认实现类
+    但是 Activiti 并没有将节点缓存处理类  ProcessDefinitionInfoCache 设计为 接口
+    反倒是一个普通的类, 而且需要缓存的对象并没有实现 Seriable 接口
+    如果客户端需要自定义节点缓存 则必须继承 ProcessDefinitionInfoCache 类
+    大师该类中并没有定义无参构造,
+    因此子类必须在 自己的构造中获取CommandExecutor
+    这样的操作设计大大增加了客户端操作的复杂度,
+    而且自定义节点缓存类需要通过 processDefinitionInfoCache 注入 ProcessEngineConfigurationImpl类
+    但是引擎并没有提供任何设置 processDefinitionInfoCache 属性的()
+
+
+
+    综上所述 实现自定义节点缓存类, 对于开发人员来说 根本就是一次代码重写,
+
+    能不能不使用修改源码的方式解决上述问题???
+        当然可以, 但是扩展源码的方式比直接修改源码的方式要优雅一点
+        因为如果直接修改源码 并且对 Activiti不合理的地方进行改造,
+        则Activiti框架需要升级时,修改的代码就需要迁移到新版本,
+        这个工作量也不小, 而扩展源码 则不会出现上述问题,
+        更优雅 更灵活
+
+
+目前支持 节点缓存的只有 UserTask  ,ServiceTask , ScriptTask
+但是 可以为不支持的 扩展源码改造
+
+
+
+
+如何自定义作业处理器 ????
+
+    以 定时启动流程实例作业的处理器, TimerStartEventJobHandler  如果需要使用该功能
+    就必须使用定时开始事件  而使用定时开始事件需要大量的配置
+
+    例如 配置开始 时间 ,循环次数,
+    但是 基于配置的方式不灵活,
+    例如 流程启动的时间 需要通过程序自动计算,
+
+
+
+
+关于 PVM
+
+    在流程文档中的元素解析完毕之后, 是不可以直接使用的, 还需要对其属性承载类实例(解析结果) 进行一次加工
+    因为 流程文档中定义的   事件,网关,活动(流程3大要素) 等信息最终交给PVM
+    而PVM 的运转机制 仅仅依赖于 ActivitiyImpl 对象或者 TransitionImpl (连线)
+
+    并非元素解析之后的BaseElement对象
+
+    试想一下:
+    该任务节点归属的流程文档(模板)  任务完成之后流程实例运行的下一个节点, 也就是最终的目的地
+    如果VM 没有持有流程文档中所有元素的解析结果,
+    可能PVM 都不知道如何进行下一步操作
+
+    而且对于 客户端来说 PVM 是一个完全不可触及的黑匣子
+
+    深入了解PVM  有助于开发者掌握如何提高流程实例的运行效率, 从而更好的设计 流程文档
+
+
+
+    在学习 BaseElement 对象的解析之前,  首先需要从全局角度 了解PVM 到底做了什么工作
+    在流程文档元素解析并且转化为Acticit内部表示BaseElement实例的过程中 ,
+    Activiti 使用开闭原则将流程文档中的元素与元素解析器 一一对应,
+
+    分离元素解析器的职责, 使每一个元素解析器的职责更加单一, 解析器之间不会相互影响 ,
+    同样开闭原则 在对象解析器中 也体现的淋漓尽致 ,
+
+    主要是将 BaseElement对象转为 PVM  ActivityImpl 对象 或者 TransitionImpl  对象的过程
+
+
+
+各个过程
+    1)定义流程文档
+    流程文档的定义工作完全交给 客户端, 客户端可以根据自己的业务需求定制流程文档
+    在流程文档的定义过程中客户端可以从元素仓库中获取一系列的元素 组装使用,
+    例如 userTask 等  ,该阶段 所有的元素 都处于XML 定义阶段
+    2) 元素解析层
+    BpmnXMLConverter  类中的 convertToBpmnModel() 所做的工作就是 将流程文档中的元素解析并且转化为
+    Activiti 中的内部表示BaseElement实例  并且最终使用流程模型BmnModel 进行保存, (类似内存DB)
+    从而使所有的元素解析结果 都可以通过BpmnModel 对象进行获取  ,而无需重新解析流程文档 ,提高运行效率
+
+    元素解析工作完成之后  ,流程文档中所有元素 已经 与  BaseElement 实例对象 一一对应起来
+
+    3) 对象解析层
+            bpmnParse.execute()  处理过程, 就是将BaseElement对象中的属性解析并且转化为PVM 中可以识别的
+            ActivityImpl 或者 TransitionImpl 对象
+
+
+    以userTask节点的定义 ,元素解析, 对象解析 3 个阶段说明 ???
+
+                流程文档中的userTask元素 经过元素解析之后 转化为UserTask对象
+                UserTask经过对象解析层之后 变为ActivityImpl对象
+                UserTask对象中的所有信息 作为 ActivityImpl 对象的属性值存在,
+                这样后续操作可以直接通过PVM  获取 ActivityImpl 对象 ,进而获取到任务节点的所有信息
+
+    元素解析与对象解析 2个阶段工作完毕之后,所有的BaseElement 对象 已经与 PVM 中的ActivityImpl 对象 对应起来
+
+    在对象解析阶段, ActivityImpl 对象 需要根据元素实体的类型   填充不同的属性值,
+    以方便PVM 按照元素的类型进行区分处理
+
+    该阶段涉及的类 包括 但是不限于 PVM 类 ActivityImpl
+                  ActivityExecution
+                 任务节点实体类  TaskDefinition
+                 活动行为类
+                 PvmTransition
+
+
+    直接用元素解析层 岂不是更加简单??? 为何要使用对象解析层呢??
+            因为流程文档定义的一些列元素经过元素解析层之后转变为不同的BaseElement对象
+            如果没有对象解析层, 那么BaseElement 承载功能太多了,
+            后续PVM 所有的操作 都需要对BaseElement 进行区别对待
+            最重要一点就是不能全局统一管理
+            引入了对象解析层之后,
+            所有的BaseElement 最终统一使用ActivityImpl 对象 或者 TransitionImpl 对象
+
+            并且 ActivityImpl 和 TransitionImpl 对象 两者之间和相互获取
+            还可以按照元素的类型添加不同的行为类,
+            分层的目的是为了 职责更加单一,看起来更加清晰, 代码更容易维护
+
+
+
+
+
+PVM的入口
+    BpmnDeployer.deploy()中调用了 BpmnParse.execute()
+
+
+对象解析器 初始化先后顺序
+
+前置 -->> 内置  --->> 自定义内置  ----->> 后置
+
+    前置\自定义内置\后置 对象解析器 3种类型的对象解析器  ,引擎 都提供了开关方便客户端操作
+
+    以上所有的对象最终使用List 集合存储
+    这样同一个对象可以存在多个 对象解析器 进行 解析处理
+
+    这一点有别于 元素解析器的处理 ,元素解析器 使用Map 结构
+    一个元素只能存在一个元素解析器 对其进行解析处理
+
+    所以说 对象解析器 留给客户端的选择更多
+
+    另一方面说明 操作对象解析器 难度 远大于 元素解析器
+
+
+
+
+如何自定义 对象解析器????
+        对任务节点userTask对象进行扩展, 在扩展元素中配置当前任务节点的处理人
+        这样流程运转到该任务节点时,就可以获取 扩展元素的值 ,
+        并将 该值 作为 任务节点的处理人,
+        为了简单起见直接使用任务监听器的方式 添加任务处理人,
+        难点:
+        1) 如何对 任务节点 userTask 的扩展元素进行解析
+                自定义任务节点对象解析器, 覆盖系统内置的解析器UserTaskParseHandler
+        2)如何存储扩展元素的值
+            ActivityImpl 对象存储了 活动节点所有的定义信息,
+            所以可以在 userTask元素解析时 ,通过setProperty() 将userTask元素的扩展值存储到ActivityiMPL 对象中
+        3)如何获取扩展元素的值
+            ActivityImpl对象存储了所有节点的定义信息, 换言之, 只要能够获取ActivityImpl对象
+            就可以通过该对象的getProperty() 获取 所有 的元素信息值
+
+
+        如何自定义任务节点对象解析器
+                继承UserTaskParseHandler即可,这样当引擎解析任务节点对象时,就可以直接委托父类
+                UserTaskParseHandler对其进行解析, 所以只需要将关注点放到自定义扩展元素的解析 和存储工作即可
+
+
+监听器 该如何合理的运用呢???
+    通常开发人员绘制流程文档时,往往会从全局角度思考如何设计一个更加合理通用的流程
+    并且最终将具体的业务使用场景,提取一个完美的流程
+    流程实例运转时, 如果探测到途径节点,或者连线配置有监听器
+    则会根据当前节点或者连线配置的监听器事件类型触发对应的监听
+
+    使用场景
+
+    1) 动态分配节点的处理人   通过监听器 可以指定下一个任务处理人 或者修改 当前节点的任务处理人
+    2) 调用第3方系统, 可以在监听器中 发送邮件或者调用第三方的业务系统
+        调用第3方系统的时候 需要特别注意, 最好使用异步方式处理复杂的业务 以防止监听器阻塞流程实例
+    3) 历史节点信息入库 ,例如启动一个流程实例 ,则需要将开始节点的信息 插入历史表 ACT_HI_actinst
+    通常 历史表的插入,更新操作均由系统内置记录监听器执行
+    4) 获取Spring中定义的bean  因为监听器 运行过程中 可能需要依赖项目中其他的服务类
+            而这些类通常完全交给了Spring管理, 所以 监听器需要获取Spring容器中管理的Bean信息
+
+
+监听器 主要指的是 执行监听器 和 任务监听器
+
+监听器从使用范围上 可以划分为 执行监听器和 任务监听器,
+从功能实现上 又可以细分为 用户自定义监听器以及系统内置记录监听器(主要操作历史表, 如 记录活动节点的开始以及结束操作)
+
+任务监听器仅仅支持作用于任务节点
+执行监听器可以作用 流程3大要素上
+
+两者之间仅仅是应用的节点范围以及类型的不同而已, 通常执行监听器的应用范围更加广泛
+
+任务监听器 支持的 事件类型有 以下 4种
+节点分配处理人 (assignment)
+创建节点 (create)
+任务完成 (complete)
+任务删除 (delete)
+
+执行监听器 支持的事件类型有 3种
+
+start
+end
+take (只能在连线中进行配置和使用,  例如当前节点完成后 途径连线到达目标节点, 那么就会触发连线上配置的执行的监听器
+
+需要注意 一点,  监听器的声明周期与之作用的节点,或者连线的生命周期息息相关 紧密绑定
+
+例如 为 userTask 配置了 1个任务 监听器
+        该任务节点的运行生命周期开始并且触发状态变更  包括给任务节点  分配处理人,
+        创建任务节点, 完成任务 以及 删除任务
+
+状态变更则会触发相关事件类型的任务监听器
+当任务节点执行完成之后 ,流程实例继续向下运转,  该任务节点的监听器运行的生命周期 伴随着作用的任务节点的结束而结束
+(除非当前流程实例再次经过该任务节点,  如 驳回 )
+
+
+
+具体的顺序
+
+流程开始
+
+开始节点   Start --->End
+连线 -- >Take
+任务 -->Start -----> assignment ----> create ------->> complete ---->End
+连线 --->Take
+结束节点 ---> Start  ----->End
+
+流程结束
+
+
+
+流程实例永远都是以执行监听器为主线运行, 如果流程实例运转的过程中发现了 任务节点 ,则开始执行任务监听器,
+如果流程实例离开任务节点 或者 连线, 则该节点的相应的监听器的声明周期 也随之结束(除非 任务节点或者连线 再次唤醒)
+任务监听器 执行完毕之后 之后 再次触发执行监听器的end事件 推动流程实例继续向下运转
+
+换言之:任务监听器的诞生 只是为了方便对任务节点的操作而设计的 , 因为流程文档中任务节点的使用非常频繁
+
+任务监听器 和执行监听器  仅仅是 实现的接口类不同
+任务监听器 是 Tasklistner 接口
+执行监听器 是ExecutionListener接口
+
+
+在Activiti  中, 对于监听器的创建 ,可以使用如下3种方式
+
+classs   指定类路径, 需要实现ExecutionListner 或者 TaskListener
+
+expression :  表达式方式创建,  该方式 在表达式中已经明确指定需要调用的类 以及 ()
+        并可以为需要调用的()传入 参数  形如 : ${bean.doSomething(execution)}
+
+delegateExpression:  该方式通常与Spring 配合使用
+
+
+关于 这3种方式 对应 由后台哪个类 进行调度
+
+任务监听器
+class : ClassDelegate
+delegateExpression   DelegateExpressionListener
+expressionTaskListener   ExpressionTaskListener
+
+执行监听器
+delegateExpression  DelegateExpressionExecutionListener
+expression :   ExpressionExecutionListener
+
+内置记录 监听器
+
+Activiti 将运行数据与历史书完全分开存储, 也就是平时所说的运行表 和历史表
+
+内置记录监听器 本质上 还是 监听器 , 只是 由引擎对其 进行调用而已 ,
+内置记录监听器的主要职责 就是操作 历史任务节点或者历史环节数据 ,
+例如 将 历史数据入库 或者修改  历史表(ACT_HI_ACTINIST) 中的结束事件, 节点的持续时间  节点处理人等等
+
+
+
+
+
+关于历史解析器 :
+    实际项目开发中客户端并没有干预内置的记录监听器, 流程实例运转时,引擎会自动触发并且执行 内置记录监听器
+    那么内置记录监听器,是如何被添加到其作用的节点呢????
+    内置记录监听器又完成了什么功能呢????
+
+    关于对象解析器来说:  可以存在多个 对象解析器 对  BaseElement 对象进行解析处理
+
+    通常流程 3大要素 在流程实例运转的过程 都会进行 历史数据的归档操作
+    也就是平台所说的历史表,
+    在此 统称为 历史解析器
+
+
+        例如 userTask节点, 需要进行历史数据的 归档, 那么该任务节点势必存在多个对象解析器,
+
+        第1类 对象解析器 负责将任务节点解析之后的信息注入PVM
+        第2类 对象解析器 也就是历史解析器, 负责获取任务节点解析之后的结果 ActivityImpl 对象并且为该对象
+        自动注入内置记录监听器
+
+        只有这样设计, 流程实例运转到该任务节点时, 才会自动触发不同事件类型的内置记录监听器
+
+    为何? 要设计历史解析器,
+            首先思考一个问题
+                内置记录监听器的作用, 该类型的监听器 完全是流程引擎为了记录或者修改历史数据而设计的
+                所以没有必要让客户端干预和配置 ,以降低客户端 使用的复杂度
+
+                附带的好处就是
+                    历史数据的归档操作 完全交给内置记录监听器来完成, 从而将  运行数据和 历史数据完全隔离
+
+        历史解析器的职责就是将这一系列的内置记录监听器注入其作用节点所对应的ActivityImpl对象
+        这样就可以很方便的为需要的节点添加内置记录监听器 ,同时也方便客户端扩展
+
+        例如 在实际开发中 ,需要记录每一个节点的创建的时间 以方便对流程实例的 运转轨迹进行跟踪
+
+        这时就可以利用 历史解析器为所有的节点 定义一个事件类型为 start 的全局执行监听器,
+        从而很方便的对流程实例的运转过程进行跟踪和分析
+
+        思考两个问题
+            1) 上面所说的2类对象解析器执行顺序是否可以颠倒
+            2) 如何灵活的为每一个节点添加内置记录监听器
+
+
+历史解析器的本质 依然是 对象解析器 也即 BpmnParseHandlers
+
+
+
+Activiti 历史归档级别
+none:
+    所有的历史归档数据不进行入库记录, 因此性能最高 但是 由于不涉及历史表的操作
+    如果配置了, 无法查询流程实例的运转轨迹 以及细节信息
+activity:
+    归档所有的流程实例以及活动实例, 不归档流程细节, 例如历史任务节点
+audit
+     默认级别, 归档所有流程实例,活动实例以及提交的表单属性, 所有与用户交互的数据(表单) 都是可以进行跟踪并且统计
+full
+    历史数据归档的最高级别, giao级别 记录了 所有的历史数据, 因此 流程实例运转最慢,
+    该级别,除了保留audit 级别的所有信息之外 还要保存类似流程变量以及 其他可能需要的历史数据
+
+
+
+
+
+
+如果程序需要执行 用户配置的监听器, 则首先需要获取该类的实例对象 ,然后调用该对象的notify()
+由于用户创建执行监听器的方式不同, 最终封装的对象也不同
+内置记录监听器则由引擎直接触发,
+class方式创建的执行监听器封装为ClassDelegate对象
+
+ 用户配置的执行监听器 可以实现 ExecutionListener接口 ,也可以实现 JavaDelegate接口
+
+*   因为引擎对于class 方式 底层是使用反射技术创建执行监听器实例对象,
+* 因此如果期望通过class方式 定义的执行\任务 监听器 获取Spring容器中的对象, 很显然无法获取
+* 因为使用反射方式创建 执行监听器的过程中是不会获取Spring容器中的实例对象的
+
+
+
+关于 使用 delegateExpression 方式调度
+
+    通常和Spring框架结合使用
+
+    <activiti:executionListenerevnt="start" delegateExpression="${hello}" />
+    @Compoment
+    public class MyDelegateExpression  implements Serializable ,JavaDelegate{
+
+        execute(){
+
+        }
+    }
+
+通过 delegateExpression 方式定义了  事件名称为 start 的执行监听器
+其中 delegateExpression 属性值为 ${hello}
+
+hello 值 可以是流程实例运行时的变量名称 形如: variables.put("hello", new MyDelegateExpression());
+
+也可以和 Spring框架结合使用
+
+
+expression方式
+
+
+public class Person{
+    private int a;
+}
+
+<bean id ="person"  class ="com.xxx.Person">
+    <property name="a"  value="1"/> </bean>
+
+    <activiti:executionListenerevnt="start" expression="${hello.doSomeThing(execution)}" />
+    <activiti:executionListenerevnt="start" expression="${hello.doSomeThing1(person,'b',hello)}" />
+
+public class ShareniuExpress implements Serializable {
+	public void doSomething(DelegateExecution execution) throws Exception {
+		execution.setVariable("myVar", execution.getVariable("msg"));
+		System.out.println("444444444444444444444444444444444");
+	}
+	public void doSomething1(Person person,String b,String cc) throws Exception {
+
+		System.out.println("444444444444444444444444444444444");
+	}
+}
+
+		Map<String, Object> variables=new HashMap<String, Object>();
+		variables.put("hello", 20);
+		ProcessInstance startProcessInstanceById = runtimeService.startProcessInstanceById("myProcess:1:4",variables);
+
+
+Activiti 提供了 几个内置变量
+
+execution, DelegateExecution 类型 保存了 流程执行相关的信息
+
+
+task DelegateTask类型 ,保存了与当前任务相关信息 (适用于 任务节点) 而且限定为expression类型的表达式
+
+
+以上两个变量是内置的
+DelegateTask类型的变量, 只能在任务监听器中 使用
+
+
+authenticatedUserId  此变量在启动流程实例前调用IdentityService 的 setAuthenticationUserId()
+                    才会由引擎提供, 获取方式很简单,  ${authenticatedUserId}
+
+
+
+
+
+关于JUEL表达式
+
+在Activiti 中使用非常广泛, 通过表达式 可以动态计算, 一切可以计算的表达式, 从而动态获取值
+例如 , 动态 设置 用户任务办理人,  执行一个Java Service
+
+在Acitivit 中 所有表达式中出现的变量 都需要实现序列化接口 , 否则报错
+coulod not  find  a variable
+
+
+在任务监听器中 首先触发的是
+assignment类型的任务 监听器,  然后触发 create类型的任务监听器
+
+
+注意 :
+    必须在流程文档中定义任务办理人, 或者在到达该任务之前显式调用setAssignee 设置当前任务处理人
+    或者调用 taskService.claim() 才可以触发 assignment类型的任务监听器,
+
+    设置任务候选人 或者候选组 不会 触发 assignment 类型的 任务监听器
+
+    delete类型的任务监听器 可以参考 TaskEntityManager 类的 deleteTask()
+
+
+
+Activiti 将客户端所有的请求操作 组装为 一个个命令类
+        首先说明  不可能在一个()中完成非常复杂的逻辑, 目的是为了使() 尽可能单一和复用,也节省后期维护成本
+
+        一个真正实现功能的() 代码量 其实是很少的  一般都是从全局角度做一些统筹工作
+
+
+
+Activiti的 命令拦截器
+
+如果不加前置拦截器
+第一个是 LogInterceptor
+事务
+上下文
+后置
+最后一个是 commandInvoker
+
+
+///////////////
+所有的命令拦截器一般直接继承 AbstractCommandInterceptor 类
+由于该抽象类的execute() 并没有进行throws 抛出异常声明
+所以该类的任何子类在实现 该() 时 ,()签名中不可以声明throws异常
+因此如果execute() 在执行过程中出现异常, 则 需要开发热源捕获异常信息并且进行处理
+
+由于日志拦截器 仅仅是 记录日志而已 , 所以几乎不会抛出异常 , 因此 该类无需进行异常的 捕获 工作
+
+
+
+
+
+
+
+
+关于PVM 如何运转 ????
+
+    从
+    runTimeService.startProcessByXX 开始
+
+    start 相关参数
+
+    processDefinitionKey   流程定义key
+    businessKey  业务key
+    tenantID 租户id
+    messageName   消息方式 启动 对应流程文档中message元素的name值
+    Map<Stirng,Object>  变量信息
+
+
+
+
+Activiti 允许开发人员 在流程文档中 为流程或者子流程定义dataObject元素
+该元素可以指定变量的id ,名称,数据类型等
+支持的数据类型有 string, boolean, datetime,double int,long
+流程实例启动之后 会将dataObject元素的信息自动转化为 流程实例变量存在
+变量名称 对应dataObject元素中定义的name 值
+开发人员也可以通过dataObject元素中的子元素 exetensionElements 为转换之后的流程变量提供默认值
+
+
+
+
+区别 流程实例 和执行实例
+
+processInstace.setVarialbes(dataObjects)  主要用于设置变量
+
+
+设置变量的 几个方式
+
+  ProcessInstance startProcessInstanceByKey(XXX, Map<String, Object> variables);
+        在流程实例启动时设置变量 (全局变量 )
+
+  void setVariables(String executionId, Map<String, ? extends Object> variables);
+  负责为流程实例设置变量
+
+  void setVariableLocal(String executionId, String variableName, Object value); //负责为执行实力设置变量(局部变量)
+  void complete(String taskId, Map<String, Object> variables)   完成任务时设置变量 (全局变量)
+  void setVariableLocal(String executionId, String variableName, Object value);  为当前执行的任务设置局部变量
+
+
+  流程实例 和执行实例的关系
+
+  通常情况下, 如果流程不存在分支 或者 多实例节点, 则流程实例id 和执行实例的id 相同
+  两者的值 分别对应  ACT_RU_EXECUTION  PROC_INST_ID 和 ID_
+
+  了解一下 执行实例树  (3级)
+        activityid  =null;    1级
+        activityid = 流程实例id ;  2级
+        XXX   XXX   XXX   执行实例n  3级
+
+
+  setVariables 和 setVariablesLocal 区别
+
+        setVariables设置的变量都是针对流程实例的(全局变量)     也就是 上图中的 2级节点
+        setVariablesLocal 可以针对 流程实例分支 (局部变量)     也即 执行实例   对应的是第3级
+
+
+默认情况下 变量都是针对流程实例的, 而局部变量的适用范围  就比较小(与执行实例的生命周期绑定 )
+只能针对执行还顺利 ,执行实例结束之后 ,后续的流程实例 无法通过 ACT_RU_VARIABLE 获取该变量值
+只可以通过ACT_HI_VARINST 表获取该变量值
+
+使用局部变量的好处
+    执行还顺利 和 流程实例 可以使用相同的变量  名称, 而且相互之间不会冲突, 使用全局变量,则变量名称相同时
+    后者会替换前者
+
+
+
+
+
+PVM的运转原理
+
+流程实例启动之前, Activiti 会判断当前流程文档中的process元素 是否配置有事件类型为start的执行监听器
+如果有 立即执行, 执行完毕之后 Activiti 会找到流程文档的源头
+也就是开始节点, 然后触发开始节点中事件类型为start的执行监听器,
+
+创建ActivityImpl对象时 会根据当前节点 或者网关的类型为其添加不同的行为类
+
+也即 执行完开始节点中事件类型weistart的执行监听器之后 ,会执行开始节点的活动行为类 中的  execute()
+
+该() 决定了流程实例的最终走向,
+
+例如 流程实例是否可以离开当前节点, 途径哪些连线, 最终流向何方,
+都由开始节点的行为类进行干预,
+
+程序执行完开始节点的行为类中的execute() 之后
+
+如果流程实例可以继续向下运转,  则会执行单签节点中事件类型为end的执行监听器, 表示该节点已经执行结束
+流程实例以及继续向下运转,
+
+在流程运转到下一个节点之前, 会途径连线,并且触发连线中事件类型为take的执行监听器
+进而到达下一个节点(目标节点)   以此类推
+
+通过上面流程运转的原理可移植
+    流程实例的运转过程中需要处理如下几个信息 ,
+
+    1) 需要获取当前的节点信息,
+    2) 获取当前节点的活动行为类
+    3) 获取当前节点可以途径的连线信息并且触发事件类型为take的执行监听器
+    4) 途径连线之后需要将目标节点的信息 插入到DB 中
+
+    换言之 :
+    当前节点执行完一系列的操作之后会告诉引擎最终可以途经的连线, 途经连线则会到达目标节点
+    到达目标节点并且执行完一系列的操作之后
+    流程实例有可能如上述所示继续运转 ,知道流程实例结束为止
+
+   对于该处理过程而言, 处理的节点不同, 但是步骤确实相同,
+
+   这样 的场景  设计使用 职责链模式 最合适不过了
+
+
+    Context对象 存储了了职责链  需要的公共属性值, 并且负责按照顺序依次调度职责链中的类
+    这样设计的好处是分类了 每个()的功能职责, 从而使 () 复用性和 移植性更强
+
+
+
+关于
+    忽略节点, 属于 Activiti5.17版本的新特性, 该操作用来设置 流程实例运转过程中 是否可以忽略当前的活动节点
+
+    如果想要使用忽略节点功能 变量名称 必须为 _ACTIVITI_SKIP_EXPRESSION_ENABLED 且必须为Boolena 否则 程序报错
+
+    用法 给某一个 节点配置上 skipExpression  ${_ACTIVITI_SKIP_EXPRESSION_ENABLED}
+
+    启动流程实例时 设置一个流程变量
+    map.put("_ACTIVITI_SKIP_EXPRESSION_ENABLED",true);
+        startBy( map)
+
+
+
+
+
+////////////////
+关于行为类
+
+
+
+    在 创建 ActivityImpl的过程中 ,会根据节点的类型注入不同的活动行为类
+    行为类主要完成什么 功能???
+
+        行为 就是 受大脑中的想法或者意识支配完成一系列的动作
+
+        例如: 现在需要完成一个任务,
+        对于任务节点的执行行为来说
+
+        需要考虑几个情况
+            1) 当前任务是否满足条件  ,任务完成之后 流程实例可以途经的连线, 最终到达的目的地,
+            换言之
+                任务节点的行为类 决定了 该流程实例的最终走向
+
+
+Activiti 将所有活动行为类的创建工作交给活动行为工厂类完成
+
+        在什么地方初始化的呢??
+
+        ProcessEngineConfigurationImpl的 getDefaultDeployers()  中
+
+
+
+
+一个场景:
+
+    员工可以发起,请假申请 ,如果请假天数 >=1 提交项目经理
+                         如果 >=2   提交项目经理, 同时 部门主管
+                         如果 >=3      项目经理 部门主管 CTO
+
+
+        排他网关的出口 需要配置条件表达式,  其内部维护决策结果(Boolean类型
+
+        当流程实例运转到排他网关时   ,流程引擎会自动探测其所有出口信息 ,自上而下检索
+
+        如果发现出口的决策结果返回true ,或者该连线配置的跳过表达式 成立, 则立即停止检索
+
+
+
+
+  <process id="extensionOperationProcess" name="ext" isExecutable="true">
+    <startEvent id="start" name="Start"></startEvent>
+    <endEvent id="end" name="End"></endEvent>
+    <exclusiveGateway id="exclusivegateway1" name="Exclusive Gateway"></exclusiveGateway>
+    <userTask id="usertask1" name="项目经理"></userTask>
+    <userTask id="usertask2" name="部门主管"></userTask>
+    <userTask id="usertask3" name="CTO"></userTask>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="exclusivegateway1"></sequenceFlow>
+    <sequenceFlow id="flow8" sourceRef="exclusivegateway1" targetRef="usertask1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${day >=1}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow3" sourceRef="exclusivegateway1" targetRef="usertask2">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${day >=2}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow4" sourceRef="exclusivegateway1" targetRef="usertask3">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${day >= 3}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow5" sourceRef="usertask1" targetRef="end"></sequenceFlow>
+    <sequenceFlow id="flow6" sourceRef="usertask2" targetRef="end"></sequenceFlow>
+    <sequenceFlow id="flow7" sourceRef="usertask3" targetRef="end"></sequenceFlow>
+    <dataObject id="dObj123" name="shareniu" itemSubjectRef="xsd:string">
+      <extensionElements>
+        <activiti:value>shareniu123</activiti:value>
+      </extensionElements>
+    </dataObject>
+  </process>
+
+
+排他网关的分支条件必须在 流程文档中进行定义 , 分支条件的配置比较简单, 一般为 boolena 类型表达式,
+
+
+
+思考2个问题
+    1) 启动流程实例之后  同时设置 day 变量为2   流程实例 如何运转呢???
+    2) 将  互换位置    流程实例运转哪一个节点呢 ??
+     <sequenceFlow id="flow1" sourceRef="start" targetRef="exclusivegateway1"></sequenceFlow>
+     <sequenceFlow id="flow8" sourceRef="exclusivegateway1" targetRef="usertask1">
+       <conditionExpression xsi:type="tFormalExpression"><![CDATA[${day >=1}]]></conditionExpression>
+     </sequenceFlow>
+     <sequenceFlow id="flow3" sourceRef="exclusivegateway1" targetRef="usertask2">
+       <conditionExpression xsi:type="tFormalExpression"><![CDATA[${day >=2}]]></conditionExpression>
+     </sequenceFlow>
+
+
+        第一种情况 : 肯定是 流转到项目经理节点,
+        第二种情况 : 肯定是  流转到部门主管节点,
+                因为流程实例运转过程中 遇到排他网关, 会自动检索网关的所有出口,
+                检索的先后顺序是按照流程文档中 定义的顺序 自上而下 开始的,
+                如果遇到分支决策 结果为true 则停止检索
+
+
+
+Activiti 将数据添加到DB中 分为2个阶段
+
+1) 将数据添加到会话缓存
+2) 将会话缓存中的数据刷新到DB
+
+更新也分两种
+1)会话缓存 方式更新
+2) 直接操作SqlSession 更新数据
+删除也是
+1) 会话缓存方式删除
+2) 操作 SqlSession 进行删除
+
+
+
+Activiti 存储的 MyBatis
+每一个使用Mybatis 操作DB的工作 都是基于SqlSessionFactory 对象实现,
+该实例负责对外提供DB的连接和 操作
+Activiti使用mYbAtis 作为数据访问层,
+
+首先思考一个问题,, DataSource 是如何被初始化的????? 从配置类 中开始的
+
+
+
+在使用mybatis时,首先要做的工作就是配置一系列的映射文件,
+从而使得实体类和 表 一一映射
+MyBatis db 表的操作都是基于 SqlSessionFactory 对象进行的
+
+SqlSessionFactory 的默认实现类 为 DefaultSqlSessionFactory ,
+因此想要使用MyBatis ,获取 SqlSessionFactory是一个必不可少的环节
+
+实体类和 DB 表的映射
+
+Activiti是如何封装数据访问层的, Activiti 和MyBAtis 集成时,
+会读取项目中配置mybatis的映射文件    mapping.xml
+
+  <settings>
+    <setting name="lazyLoadingEnabled" value="false" />
+  </settings>
+  <typeAliases>
+    <typeAlias type="org.activiti.engine.impl.persistence.ByteArrayRefTypeHandler" alias="ByteArrayRefTypeHandler"/>
+  </typeAliases>
+  <typeHandlers>
+    <typeHandler handler="ByteArrayRefTypeHandler"
+                 javaType="org.activiti.engine.impl.persistence.entity.ByteArrayRef"
+                 jdbcType="VARCHAR"/>
+  </typeHandlers>
+
+
+第1个是开启懒加载
+第二个 添加了一个TypeHandler
+
+
+映射文件  和 数据库表  实体类的关系
+Attachment.xml    ACT_HI_ATTACHEMENT   AttachmentEntity
+
+都在 org.acitivit.engine.impl.persistence.entity
+
+
+
+
+
+
+
+关于Activiti 内部删除 数据
+
+        DbSqlSession 类
+    * 3) 为什么需要判断 是不是 HasRevision 实例 ??
+      * 涉及到了DB 的乐观锁
+      *  乐观锁通常情况下 认为数据不会发生冲突, 所以在数据更新或者提交时,才会正式检测数据是否冲突
+      * 如果发生了冲突, 则将错误信息反馈给客户端, 让客户端决定下一步该如何处理
+      *
+      * Activiti是如何使用乐观锁的呢???  加了一个REV_列
+      * 读取数据时将版本列的值一并查询出来, 并将其作为数据一部分,
+      * 这样当客户端操作数据时,需要判断D表中的版本值 与当前数据的版本值是否一致,如果两者一致
+      * 则给予更新操作,(更新一次版本+1 ) 否则将当前数据作为过期数据处理
+      *
+      * 如果 persistentObject 不是 HasRevision 对象 ,就意味着没有使用到乐观锁,
+      * 就直接执行 slqSession删除数据
+      * */
+      if (persistentObject instanceof HasRevision) {
+        int nrOfRowsDeleted = sqlSession.delete(deleteStatement, persistentObject);
+        if (nrOfRowsDeleted == 0) { //表示并没有删除数据 ,因此程序直接报错
+          throw new ActivitiOptimisticLockingException(persistentObject + " was updated by another transaction concurrently");
+        }
+      } else {
+        sqlSession.delete(deleteStatement, persistentObject);
+      }
+
+
+  *  也需要分析一下
+  * Activiti 存储了会话缓存数据之后 ,是如何将 缓存中的数据刷新到DB的
+  *  查看 finaaly中   关闭命令拦截器
+
+CommadContextInterceptor 类
+
+
+
+
+
+  * 假如客户端A 发送了一个命令 将 GroupEntity对象 添加到DB
+  * 该命令经过了一系列的命令拦截器链之后 命令开始原路返回,, 并且内存中已经存储了 GroupEntity对象 (将其称之为原值
+  * 当执行到命令拦截器之前 程序还没有开始进行 flushSessions() 动作时,
+  *
+  * 客户端A 或者 客户端B 对 GroupEntity 中的属性值进行了修改,
+  *
+  * 那么当客户端A 执行 flushSession() 时   因为GroupEntity对象中的属性值与原值不一致 则会触发更新操作
+  *
+  *
+  * 假如同样的修改操作
+  * 客户端B修改了对象的id值 , 思考一下会发生更新操作吗???
+  * 不会,为什么??
+  *  因为GroupEntity 类中的 getPersistentState() 返回对象中 ,并没有对id值进行定义
+  * 因此修改id(getPersistentState()中之前没有定义的属性值 ) 不会触发更新操作
+  *
+  * 更新操作判断的核心点 只在于 关心实体类中 getPersistentState() 所定义的属性, 其他属性是否变化一概不理会,
+  *
+  * 容易出现2个缺陷
+  * 1) 例如 对于ID   (通常对应于DB中的主键,  如果Activiti运行在一个高并发的场景中, 那么 就有可能出现问题
+  * 又如客户端A生成了一个主键ID 值, 程序还没有来得及进行flushSessions操作,
+  * 这时客户端B 又需要生成一个主键id值 ,这个值就有可能占用了 ,
+  * 由于DB中的主键值不能相同,  由于DB中的主键值不能相同,因此通常情况下 ,并发量大的长泾镇 主键id建议使用 UUID
+  * 2) 会话缓存中的数据在没有刷新到BD之前,如果系统宕机, 则会话缓存中的数据丢失,
+  * 因此使用该功能有风险, 因为引擎并没有提供容错机制
+  *
+  *
+  * 通过上面分析 可知 只有 Persistentobject 接口中 getPersistentState() 定义的属性值发生了变化
+  * Activiti 才回去更新对象, 这对于客户端来说 ,可能有点不灵活
+  * Activiti 也提供了 update(String statement, Object parameters)  可以直接通过SqlSession 对象更新数据
+  *
+  * Activiti自身会话缓存机制设计的很简单, 性能稳定,但是有局限性 ,不适用于复杂场景,
+  * 在实际开发中, 如果比较复杂,可以结合MyBatis中的缓存机制使用
+  *
+
+
+默认的DBIdGenerator类生成id值存在2个缺陷
+1)如果idBlockSzie开关属性值比较小 则会频繁查询DB 效率低下
+2) 高并发情况下可能会造成主键值冲突
+
+
+
+
+
+默认情况下 Activiti 根据变量的名称 查询到变量的类型时,会通过变量管理类依次查询所有的变量处理类,直到查找到为止
+如果开发人员没有定义 custompostVariable属性值, 则SerrializableType 用于处理序列化变量
+虽然这种() 是可取的 ,但是 有几个缺陷
+
+1)卡法人员必须谨慎使用  serialVersionUID字段
+2)对于重构不友好,改变一个类或者字段名 就需要哦重新 修改源代码
+3) 序列化的对象时无法进行DB操作的
+
+实际开发中
+可以把JSON字符串存储到 ACT_RU_VARIABLE 表中的 TEXT_字段 ,并通过DB直接查询
+但是 这种实现方式受限于字符串的最大长度   ,默认情况下 Acticiti 定义为4000个字符
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,38 @@
+
+1)XML 绘制阶段
+2)元素解析阶段
+    如果是Web流程设计器
+        那么 BpmnJSONConverter
+        转换成BpmnModel之后
+        那么 BpmnXMLConverter
+    最终是一个 BaseElement对象
+3)对象解析阶段
+      BaseElement对象 并不能够为PVM 所识别
+      BpmnParseHandler 开始进行工作
+      最后解析完成之后
+      变成了ActivityImpl 和TransitionImpl对象 放到了 PorcessDefinitionEntity对象中
+      在创建ActivityImpl 和 TransitionImpl对象的时候 , 会根据节点类型 设置 不同的行为类
+      StartEvent 事件 的ActivityImpl 也往 ExecutionEntity中 存储了一份  StartingExecution中也有一份
+       // 获取StartIngExecution 对象  StartingExecution中 持有开始节点在PVM 中的表示类
+4)流程实例启动
+      使用职责链模式,      PVM 进行运转的时候 是  使用这些原子类 运转的
+
+最终行为类决定了  流程实例可以途经何方 ,但还是使用的 原子类 在底层操作
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

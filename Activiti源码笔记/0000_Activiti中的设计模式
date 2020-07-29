@@ -1,0 +1,108 @@
+门面模式
+ProcessEngineImpl 对象的属性值 均从  ProcessEngineConfiguration 中进行获取 这是典型的门面模式,
+为客户端的使用提供遍历, 无需关心 ProcessEngineConfiguration内部实现机制
+
+StreamSource 接口定义了getInputStream() 并且提供了一系列访问不同资源的实现类
+因为 BPMNXMLConverter 类中的convertToBpmnModel() 需要 InputStreamProvider  典型的策略模式
+
+
+
+事件转发器用的是 		观察者模式
+			定义对象之间 一对一 或者一对多的依赖关系 ,
+			当一个对象的状态发生变化时, 所有依赖于它的对象都会得到通知并自动更新
+			ActivitiEventSupport 就是 目标对象
+			该对象中定义了 观察者对象 ActivitiEventListener  的添加和 删除操作 以及通知 观察者的() dispatchEvent
+
+任务代理类
+首先从 Context类中 取出 ProcessEngineConfigurationImpl 对象
+    然后获取 delegateInterceptor对象
+    最后根据   ProcessEngineConfigurationImpl 对象以及 执行监听器对象实例化 ExecutionListenerInvocation类
+    既然已经获取到监听器实例对象, 为何不直接触发 监听器中的notify() ???
+      因为Activiti 在触发用户配置监听器中 的notify() 之前, 做了一层全局功能架构
+      也即使用代理模式 对监听器的访问进行控制
+
+Activiti 将客户端所有的请求操作 组装为 一个个命令类
+        首先说明  不可能在一个()中完成非常复杂的逻辑, 目的是为了使() 尽可能单一和复用,也节省后期维护成本
+
+        一个真正实现功能的() 代码量 其实是很少的  一般都是从全局角度做一些统筹工作
+
+
+Activiti 职责链模式
+    命令拦截器就是  被构造成链
+
+        链 是 一系列相同类型的集合
+        链中的任何节点可以灵活拆分和组装
+
+
+    PVM 流程运转的原理 也是 职责链模式
+
+
+工厂模式
+    行为类 就是 工厂模式
+        Activiti 将所有活动行为类的创建工作交给活动行为工厂类完成
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
