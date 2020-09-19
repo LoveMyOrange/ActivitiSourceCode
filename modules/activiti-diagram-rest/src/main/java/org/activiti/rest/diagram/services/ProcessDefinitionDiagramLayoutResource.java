@@ -22,7 +22,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @RestController
 public class ProcessDefinitionDiagramLayoutResource extends BaseProcessDefinitionDiagramLayoutResource {
-
+  /*
+  * 根据流程定义ID查询流程定义信息
+  * 1) 通过rest接口获取 diagram信息,并通过Diagram Viewer 渲染图标
+  *     此接口就是
+  * 2) 直接获取图片
+  *     在ProcessDefinitionInfoComponent类中
+  * */
   @RequestMapping(value="/process-definition/{processDefinitionId}/diagram-layout", method = RequestMethod.GET, produces = "application/json")
   public ObjectNode getDiagram(@PathVariable String processDefinitionId) {
     return getDiagramNode(null, processDefinitionId);

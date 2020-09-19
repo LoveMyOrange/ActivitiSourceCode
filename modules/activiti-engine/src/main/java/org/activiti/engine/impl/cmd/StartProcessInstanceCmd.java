@@ -33,6 +33,7 @@ import org.activiti.engine.runtime.ProcessInstance;
 /**
  * @author Tom Baeyens
  * @author Joram Barrez
+ * 启动流程实例的命令类    PVM的运转由此开始
  */
 public class StartProcessInstanceCmd<T> implements Command<ProcessInstance>, Serializable {
 

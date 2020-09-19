@@ -73,10 +73,12 @@ public class ProcessInstanceEndHandler implements ExecutionListener {
 
 
 
+// 往ACT_HI_IDENTITYLINK表中插入信息
+Context.getCommadnContext.getHistoryManager().recordIdentityCreated(this)
 
 
-
-
+更新流程实例的名称
+ commandContext.getHistoryManager().recordProcessInstanceNameChange(processInstance.getId(), processInstanceName);
 
 
 

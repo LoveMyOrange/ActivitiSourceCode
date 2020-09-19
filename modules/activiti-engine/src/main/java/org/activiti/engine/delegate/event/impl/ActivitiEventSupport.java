@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Frederik Heremans
  * @desc
+ * 事件监听器 的注册 和移除工作 最终是通过 此类完成的.
+ *
  * 该类内部维护了一个 全局事件监听器集合 eventListenrs 和具体类型的事件监听器 typedListeners
  * 并且定义了 这两个集合的 添加 删除 以及转发不同事件的方法
  *
@@ -41,7 +43,6 @@ import org.slf4j.LoggerFactory;
  *
  *  		因为向eventListenrs 集合中 添加元素是 可能存在多个 线程同时 对集合内容进行操作
  * 		所以使用了 synchronized 进行修饰
- *
  * 	ActivitiEventSupport  中的   eventListeners  是 List结构 使用了 CopyOnWriteArrayList
  *
  */
@@ -100,6 +101,7 @@ public class ActivitiEventSupport {
 		}
 	}
 	/*
+
 	 */
 	public void dispatchEvent(ActivitiEvent event) {
 /*]
@@ -108,10 +110,8 @@ public class ActivitiEventSupport {
 
 		如果事件类型为空 ,事件监听器 又该如何检测到该类型的事件呢???
 		其实 这个地方的处理还有一个 小缺陷
-
 		因为不论 event 参数为空 还是 getType() 为空
 		 都抛出 相同的异常信息 , 那么 开发人员 无法定位是 这两个 谁为空 而导致程序出错的
-
 		 Activiti 5.22 解决了这个问题
  */
 		if (event == null) {
@@ -154,10 +154,8 @@ public class ActivitiEventSupport {
 		如果false  则忽略异常信息, 流程实例继续运转而不受干扰
 
 		观察者模式
-
 			定义对象之间 一对一 或者一对多的依赖关系 ,
 			当一个对象的状态发生变化时, 所有依赖于它的对象都会得到通知并自动更新
-
 			ActivitiEventSupport 就是 目标对象
 			该对象中定义了 观察者对象 ActivitiEventListener  的添加和 删除操作 以及通知 观察者的() dispatchEvent
 
@@ -191,10 +189,19 @@ public class ActivitiEventSupport {
 		}
 		/*
 		如果集合中不存在 该元素  则将其添加到listeners 集合中
-
 		 */
 		if (!listeners.contains(listener)) {
 			listeners.add(listener);
 		}
 	}
 }
+
+
+
+
+
+
+
+
+
+

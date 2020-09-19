@@ -21,11 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Tijs Rademakers
- * @desc 该类 实现 HasExtensionAttributes   封装了 id
- *   protected int xmlRowNumber;
- *   protected int xmlColumnNumber;  元素在XML文件中的坐标信息
- *   以及克隆BaseElement对象的抽象()
- *
+ * @desc 该类 实现 HasExtensionAttributes   封装了 id,xmlRowNumber,,xmlColumnNumber(元素在XML文件中的坐标信息) 等属性以及克隆BaseElement对象的抽象()
  *   此类是 所有元素属性承载类的父类
  *   由此可知 所有的流程元素都可以扩展, 例如 任务节点,
  *   任务节点的属性 承载类 UserTask 就是BaseElement 类的子类之一
@@ -72,7 +68,10 @@ public abstract class BaseElement implements HasExtensionAttributes {
     return extensionElements;
   }
   /*
- 自定义元素的解析结果存储到父级元素中
+ 此() 主要功能就是 :自定义元素的解析结果存储到父级元素中
+ 此类作为所有元素承载类的父类存在
+  由此可知,所有的流程元素都可以扩展,
+  例如 任务节点 任务节点的属性承载类, UserTask就是BaseElement的子类之一
    */
   public void addExtensionElement(ExtensionElement extensionElement) {
     if (extensionElement != null && StringUtils.isNotEmpty(extensionElement.getName())) {

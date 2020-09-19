@@ -1,4 +1,27 @@
-processEngineName    设置流程引擎的name值
+enableConfiguratorServiceLoader  和配置器 相关,  SPI 机制  默认为true
+
+processEngineName    设置流程引擎的name值   默认为default
+
+
+databaseSchemaUpdate()
+  执行DB 表生成策略, 开发人员为流程引擎配置类 设置 databaseSchemaUpdate 属性
+     false 默认值 ,流程引擎启动时, 首先从ACT_GE_PROERTY 中查询Activiti引擎版本值 NAME_指端的值 等于schema.version
+     然后获取ProcessEngine接口中定义的VERSION 静态变量值
+     两者进行对比, 如果DB中的表不存在或者表存在 但是版本不匹配则直接抛出异常
+
+     true 流程引擎启动时会对所有的表进行更新操作, (upgrade目录中的DDL脚本
+     如果DB中的表不存在则开始建表, (create目录中的 DDL脚本)
+
+     create-drop  流程引擎启动时建表, 流程引擎关闭时删除表(流程引擎的关闭 形如: processEngine.close()
+     drop-create 流程引擎启动时首先删除DB中的表 然后重新创建表,(该方式不需要手动关闭流程引擎,)  该操作非常危险,不建议正式环境使用
+     create 流程引擎启动时 不管DB是否存在表   都创建表 (意味着如果DB中已经存在表, 再次执行创建表的DDL 肯定报错, 因此不建议使用 )
+
+
+
+
+
+
+
 Map<Object, Object> beans1 = springProcessEngineConfiguration.getBeans();
 使用此() 就可以获取 流程配置文件定义的所有bean实例对象 ,
 
@@ -21,7 +44,10 @@ enableConfiguratorServiceLoader  serviceClassLoader 方式使用配置器  该�
 
 
 
-jobExecutorActivate   作业执行器
+jobExecutorActivate   作业执行器  默认为false ,设置为true之后,引擎会不间断的刷新DB的作业表
+    检查是否存在需要执行的作业, 有的话则触发作业的执行,作业的来源有多种,eg 各种时间事件或者异步作业执行
+
+
 asycExecutorActivate  异步作业执行器
 
 

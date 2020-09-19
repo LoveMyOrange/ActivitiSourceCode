@@ -62,7 +62,10 @@ public class ProcessEngineImpl implements ProcessEngine {
   protected TransactionContextFactory transactionContextFactory;
   protected ProcessEngineConfigurationImpl processEngineConfiguration;
 /*
-
+  初始化流程引擎  -->  ProcessEngineConfigurationImpl类的 buildProcessEngine() 的第2行代码
+  new ProcessEngineImpl(this);
+  ProcessEngineImpl 对象的属性值 都从 ProcessEngineConfigurationImpl 对象中获取
+  这是典型的门面设计模式, 为客户端使用提供便利, 无需关心  ProcessEngineConfiguration内部实现机制
  */
   public ProcessEngineImpl(ProcessEngineConfigurationImpl processEngineConfiguration) {
     this.processEngineConfiguration = processEngineConfiguration; //流程引擎配置 实例
@@ -81,30 +84,29 @@ public class ProcessEngineImpl implements ProcessEngine {
     this.asyncExecutor = processEngineConfiguration.getAsyncExecutor();//异步作业执行器
     this.commandExecutor = processEngineConfiguration.getCommandExecutor();//命令执行器
     this.sessionFactories = processEngineConfiguration.getSessionFactories();//sessionFactory
-    this.transactionContextFactory = processEngineConfiguration.getTransactionContextFactory();//事务工厂
+    this.transactionContextFactory = processEngineConfiguration.getTransactionContextFactory();//事务上下文工厂
     /*
      执行DB 表生成策略, 开发人员为流程引擎配置类 设置 databaseSchemaUpdate 属性
      false 默认值 ,流程引擎启动时, 首先从ACT_GE_PROERTY 中查询Activiti引擎版本值 NAME_指端的值 等于schema.version
      然后获取ProcessEngine接口中定义的VERSION 静态变量值
-     两者进行对比, 如果DB中的表不存爱或者表存在 但是版本不匹配则直接抛出异常???
+     两者进行对比, 如果DB中的表不存在或者表存在 但是版本不匹配则直接抛出异常
 
      true 流程引擎启动时会对所有的表进行更新操作, (upgrade目录中的DDL脚本
-     如果DB中的表不存在则开始建表, create目录中的 DDL脚本
+     如果DB中的表不存在则开始建表, (create目录中的 DDL脚本)
 
-     create-drop  流程引擎启动时建表, 流程引擎关闭时删除表
-     drop-create 流程引擎启动时首先删除DB中的表 然后重新创建表,
-     create 流程引擎启动时 不管DB是否存在表   都创建表
+     create-drop  流程引擎启动时建表, 流程引擎关闭时删除表(流程引擎的关闭 形如: processEngine.close()
+     drop-create 流程引擎启动时首先删除DB中的表 然后重新创建表,(该方式不需要手动关闭流程引擎,)  该操作非常危险,不建议正式环境使用
+     create 流程引擎启动时 不管DB是否存在表   都创建表 (意味着如果DB中已经存在表, 再次执行创建表的DDL 肯定报错, 因此不建议使用 )
      */
 
     commandExecutor.execute(processEngineConfiguration.getSchemaCommandConfig(), new SchemaOperationsProcessEngineBuild());
-
     if (name == null) {
       log.info("default activiti ProcessEngine created");
     } else {
       log.info("ProcessEngine {} created", name);
     }
     /*
-    注册流程引擎
+    注册流程引擎  此() 将 此类 注册到  ProcessEngines中
      */
     ProcessEngines.registerProcessEngine(this);
   /*
@@ -113,7 +115,9 @@ public class ProcessEngineImpl implements ProcessEngine {
     if (jobExecutor != null && jobExecutor.isAutoActivate()) {
       jobExecutor.start();
     }
-    
+    /*
+    * 异步作业执行器
+    * */
     if (asyncExecutor != null && asyncExecutor.isAutoActivate()) {
       asyncExecutor.start();
     }
@@ -132,6 +136,9 @@ public class ProcessEngineImpl implements ProcessEngine {
   }
   /*
   关闭流程引擎
+  如果使用 StandloneProcessEngineConfiguration 对象 ,需要手动调用流程引擎的close()
+  如果使用 ProcessEngineFactoryBean 类构造流程引擎, 则无需关心 close()
+  具体实现逻辑可以跟进该类的 destory()
    */
   public void close() {
     ProcessEngines.unregister(this);//注销流程引擎实例

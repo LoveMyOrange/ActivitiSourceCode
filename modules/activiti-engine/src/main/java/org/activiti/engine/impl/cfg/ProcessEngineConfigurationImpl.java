@@ -254,6 +254,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *  该抽象类继承 ProcessEngineConfiguration  负责创建一系列服务类实例对象,  流程引擎实例对象
  *  以及ProcessEngineImpl对象
  *  该类可以通过 流程引擎配置文件 交给Spring容器管理 或者使用编程方式动态构造
+ *
+ *  //
+ *
  */
 public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfiguration {  
 
@@ -308,9 +311,9 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   
   // Configurators ////////////////////////////////////////////////////////////
   
-  protected boolean enableConfiguratorServiceLoader = true; // Enabled by default. In certain environments this should be set to false (eg osgi)
-  protected List<ProcessEngineConfigurator> configurators; // The injected configurators
-  protected List<ProcessEngineConfigurator> allConfigurators; // Including auto-discovered configurators
+  protected boolean enableConfiguratorServiceLoader = true; // serviceLoader  SPI机制  默认值 true
+  protected List<ProcessEngineConfigurator> configurators; // Activiti的配置器 开关属性
+  protected List<ProcessEngineConfigurator> allConfigurators; // 配置器集合
   
   // DEPLOYERS ////////////////////////////////////////////////////////////////
 
@@ -320,7 +323,15 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   protected List<Deployer> customPostDeployers;
   protected List<Deployer> deployers;
   protected DeploymentManager deploymentManager;
-  
+  /*
+  * 所有流程定义都被缓存了（解析之后）避免每次使用前都要访问数据库， 因为流程定义数据是不会改变的。 默认，不会限制这个缓存。如果想限制流程定义缓存，可以添加如下配置
+  这个配置会把默认的hashmap缓存替换成LRU缓存，来提供限制。 当然，这个配置的最佳值跟流程定义的总数有关， 实际使用中会具体使用多少流程定义也有关。
+  也你可以注入自己的缓存实现。这个bean必须实现 org.activiti.engine.impl.persistence.deploy.DeploymentCache接口：
+  * <property name="processDefinitionCache">
+  <bean class="org.activiti.MyCache" />
+</property>
+有一个类似的配置叫knowledgeBaseCacheLimit和knowledgeBaseCache， 它们是配置规则缓存的。只有流程中使用规则任务时才会用到。
+   * */
   protected int processDefinitionCacheLimit = -1; // By default, no limit
   protected DeploymentCache<ProcessDefinitionEntity> processDefinitionCache;
   protected int bpmnModelCacheLimit = -1; // By default, no limit
@@ -588,8 +599,8 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   
   protected boolean enableEventDispatcher = true;
   protected ActivitiEventDispatcher eventDispatcher;
-  protected List<ActivitiEventListener> eventListeners;
-  protected Map<String, List<ActivitiEventListener>> typedEventListeners;
+  protected List<ActivitiEventListener> eventListeners;//全局事件监听器
+  protected Map<String, List<ActivitiEventListener>> typedEventListeners;//具体类型的事件监听器
   
   // Event logging to database
   protected boolean enableDatabaseEventLogging = false;
@@ -617,7 +628,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
   // buildProcessEngine ///////////////////////////////////////////////////////
   /*
   该() 处理逻辑 如下
-  1)调用init() 初始化各种属性值
+  1)调用init() 初始化 ProcessEngineConfigurationImpl对象的 各种属性值
   2) 实例化ProcessEngineImpl类
    */
   public ProcessEngine buildProcessEngine() {
@@ -1161,10 +1172,11 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
   }
   /*
   初始化配置器,
+  不管是Activiti配置风格还是Spring风格 都是 XML配置
   在XML 中定义力流程引擎配置类 有如下几个缺点
   1) 不灵活, 所有的属性信息都需要在XML中进行配置
-  2) 不能满足冬天属性配置需求,如果开发人员打算使用编程方式构造流程引擎配置类的对象 则这种方式几乎不可能实现
-  3)无法检查必要的属性是否已经被初始化,比如 期望检查数据源的 . 则不能满足需求
+  2) 不能满足动态属性配置需求,如果开发人员打算使用编程方式构造流程引擎配置类的对象 则这种方式几乎不可能实现
+  3)无法检查必要的属性是否已经被初始化,比如 期望检查数据源的信息 . 则不能满足需求
 
   Actvitii 5.13版本 增加了 配置器,
   可以通过编程的方式 动态修改 或者刷新 配置类中属性值
@@ -1200,9 +1212,9 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
     	if (nrOfServiceLoadedConfigurators > 0) {
     		log.info("Found {} auto-discoverable Process Engine Configurator{}", nrOfServiceLoadedConfigurators++, nrOfServiceLoadedConfigurators > 1 ? "s" : "");
     	}
-    	//判断集合是否为空 如果 不为空 , 执行
+    	//判断allConfigurators集合是否为空 如果 不为空 , 对集合中的元素按照
     	if (!allConfigurators.isEmpty()) {
-    		  //对ProcessEngineConfigurator 中的getPriporty() 返回值进行升序排序
+    		  //按照ProcessEngineConfigurator 中的getPriporty() 返回值进行升序排序
 	    	Collections.sort(allConfigurators, new Comparator<ProcessEngineConfigurator>() {
 	    		@Override
 	    		public int compare(ProcessEngineConfigurator configurator1, ProcessEngineConfigurator configurator2) {
@@ -1246,12 +1258,15 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
   // deployers ////////////////////////////////////////////////////////////////
   /*
   初始化 部署器
+  为什么要用两个变量分别定义 前置部署器和后置部署器呢? 定义一个岂不是更好??
+  因为部署器集合是 List  ,List是有序的, 也是为了后续遍历该集合时 有先后顺序
    */
   protected void initDeployers() {
     //判断 deployers 集合是否已经 初始化 ,如果 已经初始化 ,则不会进行实例化操作
     if (this.deployers==null) {
+      //初始化 部署器集合
       this.deployers = new ArrayList<Deployer>();
-      //前置部署器
+      //添加前置部署器不为空,则向集合中添加该值
       if (customPreDeployers!=null) {
         this.deployers.addAll(customPreDeployers);
       }
@@ -1345,9 +1360,9 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
       bpmnDeployer = new BpmnDeployer(); //实例化 bpmnDeployer 类
     }
       
-    bpmnDeployer.setExpressionManager(expressionManager); //设置表达式管理器
-    bpmnDeployer.setIdGenerator(idGenerator);//id生成器
-    //默认的BPMN解析工厂 该工厂负责创建BpmnParse 对象
+    bpmnDeployer.setExpressionManager(expressionManager); //设置表达式管理器  解析 JUEL表达式
+    bpmnDeployer.setIdGenerator(idGenerator);//id生成器  负责DB主键ID值生成
+    //默认的BPMN解析工厂 该工厂负责创建BpmnParse 对象   也可以自定义实现
     if (bpmnParseFactory == null) {
       bpmnParseFactory = new DefaultBpmnParseFactory();
     }
@@ -1355,6 +1370,9 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
     行为类 工厂
     判断  是否自定义了 行为类 工厂,
     最简单的方法就是 定义一个类 继承  DefaultActivityBehaviorFactory 然后  设置   activityBehaviorFactory 开关属性即可
+
+
+
      */
 	if (activityBehaviorFactory == null) {
 	  DefaultActivityBehaviorFactory defaultActivityBehaviorFactory = new DefaultActivityBehaviorFactory();
@@ -1373,7 +1391,7 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
 			&& ((AbstractBehaviorFactory) listenerFactory).getExpressionManager() == null) {
 		((AbstractBehaviorFactory) listenerFactory).setExpressionManager(expressionManager);
 	}
-    //实例话BPMNParser 类    该类很重要 负责 创建爱你 BpmnParse 对象 而 BpmnParse 对象 负责全局调度 元素解析 和对象解析工作
+    //实例话BPMNParser 类    该类很重要 负责 创建 BpmnParse 对象 而 BpmnParse 对象 负责全局调度 元素解析 和对象解析工作
     if (bpmnParser == null) {
       bpmnParser = new BpmnParser();
     }
@@ -1581,7 +1599,7 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
     //激活流程定义处理器
     TimerActivateProcessDefinitionHandler activateProcessDefinitionHandler = new TimerActivateProcessDefinitionHandler();
     jobHandlers.put(activateProcessDefinitionHandler.getType(), activateProcessDefinitionHandler);
-    //getCustomJobHandlers() 用于获取 customJobHandlers    他是开关属性,
+    //getCustomJobHandlers() 用于获取 customJobHandlers    他是开关属性,  可以通过它 替换引擎默认的作业处理器
     if (getCustomJobHandlers()!=null) {
       for (JobHandler customJobHandler : getCustomJobHandlers()) {
         jobHandlers.put(customJobHandler.getType(), customJobHandler);      
@@ -1592,9 +1610,13 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
   // job executor /////////////////////////////////////////////////////////////
   /*
    初始化作业执行器
+
    */
   protected void initJobExecutor() {
+    //如果 异步作业执行没有开启, 初始化作业执行器
+    //也即对于开发人员来说 作业执行器 和异步作业执行器 功能只能选用一个
     if (isAsyncExecutorEnabled() == false) {
+
       if (jobExecutor == null) {//
         //默认作业执行器
         jobExecutor = new DefaultJobExecutor();
@@ -1722,11 +1744,15 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
   }
   /*
   * 初始化变量管理类
+  * Activiti通过此() 处理这些变量,获取变量类型,
+  * 也可以自定义变量类型
+  *
+  *
   * */
   protected void initVariableTypes() {
     if (variableTypes==null) {
       variableTypes = new DefaultVariableTypes();
-      if (customPreVariableTypes!=null) { //前置
+      if (customPreVariableTypes!=null) { //前置  customPreVariables 开关属性可以覆盖系统内置的变量类
         for (VariableType customVariableType: customPreVariableTypes) {
           variableTypes.addType(customVariableType);
         }
@@ -1748,7 +1774,7 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
       variableTypes.addType(new SerializableType());
       variableTypes.addType(new CustomObjectType("item", ItemInstance.class));
       variableTypes.addType(new CustomObjectType("message", MessageInstance.class));
-      // 后置
+      // 后置  可以给开发人员最后一次机会修改变量处理类
       if (customPostVariableTypes != null) {
         for (VariableType customVariableType: customPostVariableTypes) {
           variableTypes.addType(customVariableType);
@@ -1756,13 +1782,17 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
       }
     }
   }
-
+  /*
+  * 如果 maxLengthStringVariableType 为-1
+  * 则流程引擎连接的DB类型为
+  * Oracle 时长度为2000 mysql 为4000
+  * */
   protected int getMaxLengthString() {
     if (maxLengthStringVariableType == -1) {
       if ("oracle".equalsIgnoreCase(databaseType) == true) {
-        return DEFAULT_ORACLE_MAX_LENGTH_STRING;
+        return DEFAULT_ORACLE_MAX_LENGTH_STRING; //2000
       } else {
-        return DEFAULT_GENERIC_MAX_LENGTH_STRING;
+        return DEFAULT_GENERIC_MAX_LENGTH_STRING; //4000
       }
     } else {
       return maxLengthStringVariableType;
@@ -1889,14 +1919,14 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
     }
   }
   /*
-  事件转发器
+  初始化事件转发器
    */
   protected void initEventDispatcher() {
     //默认使用的转发器为 ActivitiEventDispatcherImpl  当然可以通过设置 eventDispatcher 注入自定义事件转发器
   	if(this.eventDispatcher == null) {
   		this.eventDispatcher = new ActivitiEventDispatcherImpl();
   	}
-  	//开启事件转发功能 ,如果不想用, 那么关闭即可
+  	//开启事件转发功能 ,如果不想用, 那么关闭即可 设置为false 从而全局禁用
   	this.eventDispatcher.setEnabled(enableEventDispatcher);
   	//判断 eventListeners 集合是否为空 ,如果该集合不为空
   	if(eventListeners != null) {
@@ -1907,12 +1937,13 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
   	}
   	/*
   	注册具体类型的监听器
-          typedEventListeners
+          typedEventListeners 集合为Map数据结构
+          key 为具体的事件类型, value  是具体类型的事件监听器
   	 */
   	if(typedEventListeners != null) {
   	  //遍历集合
   		for(Entry<String, List<ActivitiEventListener>> listenersToAdd : typedEventListeners.entrySet()) {
-  		  //得到key 值  并将其转换为ActivitiEventType类型的数据,  (处理过程是 key使用,进行分割)
+  		  //得到key 值  并将其转换为ActivitiEventType类型的数据,  (处理过程是 key使用,进行分割 可以参考getTypesFromString()的实现)
   			ActivitiEventType[] types = ActivitiEventType.getTypesFromString(listenersToAdd.getKey());
   			// 然后 根据 listenersToAdd 对象 和type 进行具体类型的事件监听器的注册工作
   			for(ActivitiEventListener listenerToAdd : listenersToAdd.getValue()) {
@@ -1932,10 +1963,16 @@ Activiti中 可以使用的变量类型都是通过 此Handler 进行转换的
   }
   /*
   初始化 日志监听器
-  objectMapper  用来 初始JSON格式数据
+  objectMapper  用来 初始JSON格式数据(Activiti默认使用jackson处理 JSON )
   clock  用于设置 和获取时间
+
+  结论:
+    如果想要开启日志记录功能,
+    1)enableDatabaseEventLogging 需要设置为true
+    2)必须开启事件转发功能
    */
   protected void initDatabaseEventLogging() {
+    //判断 是否true   如果是 则 开启日志监听
   	if (enableDatabaseEventLogging) {
   		// Database event logging uses the default logging mechanism and adds
   		// a specific event listener to the list of event listeners

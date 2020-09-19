@@ -25,13 +25,34 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Tijs Rademakers
- * @desc  根元素  definitions 对应的解析器为 DefinitionsParser
- * 根据元素中可以定义多个流程元素   process (建议每个流程文档只定义一个process元素 这样可以减少开发过程中的维护成本
+ * @desc
+ * 根元素  definitions 对应的解析器为 DefinitionsParser
+ * 根据元素中可以定义多个流程元素   process (建议每个流程文档只定义一个process元素 这样可以减少开发过程中的维护成本)
+ *
+ *  <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ *  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ *  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ *  xmlns:activiti="http://activiti.org/bpmn"
+ *  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ *  xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+ *  xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+ *  typeLanguage="http://www.w3.org/2001/XMLSchema"
+ *  expressionLanguage="http://www.w3.org/1999/XPath"
+ *  targetNamespace="http://www.activiti.org/processdef"
+ *  id="javaee"
+ *  name="javaeee"
+ *  exporter="javaee"
+ *  exporterVersion="1"
+ *  >
+ *
  *
  * definitions 元素 至少需要包含xmlns 和targetNameSpace  两个属性声明
- *
  * targetNameSpace 可以是任意值,, 该属性可以用来对流程定义模板进行分类
  *
+ *
+ * 疑问:
+ *         目前 Actiivit中 哪些元素 默认支持扩展属性呢??
+ *         解答  3个 根元素 definitions  任务节点 userTask   流程元素 process
  */
 public class DefinitionsParser implements BpmnXMLConstants {
   /*
@@ -58,7 +79,7 @@ public class DefinitionsParser implements BpmnXMLConstants {
   
   @SuppressWarnings("unchecked")
   public void parse(XMLStreamReader xtr, BpmnModel model) throws Exception {
-    //获取targetNameSpace 命名空间, 对应值为 hello
+    //获取targetNameSpace 命名空间, 对应值为 http://www.activiti.org/processdef
     model.setTargetNamespace(xtr.getAttributeValue(null, TARGET_NAMESPACE_ATTRIBUTE));
     //遍历所有命名空间的URI ,包括获取URI的前缀以及值 然后添加到model对象中
     for (int i = 0; i < xtr.getNamespaceCount(); i++) { //获取命名空间形如 xmlns:activiti
@@ -86,6 +107,10 @@ public class DefinitionsParser implements BpmnXMLConstants {
        model.addDefinitionsAttribute(extensionAttribute); 将其 添加到model 对象中
        方便后续获取
        addDefinitionsAttribute() 内部使用Map 存储
+
+       疑问:
+        目前 Actiivit中 哪些元素 默认支持扩展属性呢??
+          3个 根元素 definitions  任务节点 userTask   流程元素 process
        */
       if (!BpmnXMLUtil.isBlacklisted(extensionAttribute, defaultAttributes)) {
         model.addDefinitionsAttribute(extensionAttribute);
@@ -93,3 +118,17 @@ public class DefinitionsParser implements BpmnXMLConstants {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

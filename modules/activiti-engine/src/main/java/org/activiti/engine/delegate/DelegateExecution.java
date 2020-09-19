@@ -19,18 +19,24 @@ import org.activiti.engine.EngineServices;
 
 /**
  * Execution used in {@link JavaDelegate}s and {@link ExecutionListener}s.
- * 
+ * 执行监听器中的 notify() 的入参
  * @author Tom Baeyens
  */
 public interface DelegateExecution extends VariableScope {
 
   /** Unique id of this path of execution that can be used as a handle to provide external signals back into the engine after wait states. */
+  //流程id
   String getId();
 
-  /** Reference to the overall process instance */
+  /** Reference to the overall process instance
+   * 流程实例id
+   * */
+
   String getProcessInstanceId();
 
-  /** The {@link ExecutionListener#EVENTNAME_START event name} in case this execution is passed in for an {@link ExecutionListener}  */
+  /** The {@link ExecutionListener#EVENTNAME_START event name} in case this execution is passed in for an {@link ExecutionListener}
+   * 获取 Start ,End ,Take
+   * */
   String getEventName();
   
   /** The business key for this execution. Only returns a value if the delegate execution
@@ -38,47 +44,57 @@ public interface DelegateExecution extends VariableScope {
    *  
    * @deprecated use {@link #getProcessBusinessKey()} to get the business key for the process
    *             associated with this execution, regardless whether or not this execution is a 
-   *             process-instance. 
+   *             process-instance.
+   *
+   * 获取 业务key
    */
   String getBusinessKey();
   
   /**
    * The business key for the process instance this execution is associated with.
+   * 获取业务key
    */
   String getProcessBusinessKey();
   
   /**
    * The process definition key for the process instance this execution is associated with.
+     获取流程定义ID
    */
   String getProcessDefinitionId();
   
   /**
    * Gets the id of the parent of this execution. If null, the execution represents a process-instance.
+    获取父id,听说是并发的时候有用
    */
   String getParentId();
   
   /**
    * Gets the id of the calling execution. If not null, the execution is part of a subprocess. 
+    获取调用执行的ID
    */
   String getSuperExecutionId();
   
   /**
    * Gets the id of the current activity.
+   * 获取当前ActivityID (当前正在活动的ActivityId)
    */
   String getCurrentActivityId();
   
   /**
    * Gets the name of the current activity.
+   * ActivityName   活动的名称
    */
   String getCurrentActivityName();
   
   /**
    * Returns the tenant id, if any is set before on the process definition or process instance.
+   * 获取租户id
    */
   String getTenantId();
   
   /**
    * All Activiti services can be accessed through this interface.
+   * 获取 8大Service
    */
   EngineServices getEngineServices();
   

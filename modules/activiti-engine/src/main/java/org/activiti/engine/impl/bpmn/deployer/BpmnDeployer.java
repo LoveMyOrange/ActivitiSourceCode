@@ -193,7 +193,6 @@ public class BpmnDeployer implements Deployer {
           processDefinitions.add(processDefinition);
           /*
                   以上 所有操作完毕 将相应的信息 添加 到 rocessDefinitions 集合 和bpmnModelMap 中
-
                   processDefintions 集合中是否有值 决定了 程序是否可以进行下一步的处理
            */
           bpmnModelMap.put(processDefinition.getKey(), bpmnParse.getBpmnModel());
@@ -260,6 +259,7 @@ public class BpmnDeployer implements Deployer {
         int processDefinitionVersion; //存储流程定义版本号
 
         ProcessDefinitionEntity latestProcessDefinition = null;
+        //如果租户不是null
         if (processDefinition.getTenantId() != null && !ProcessEngineConfiguration.NO_TENANT_ID.equals(processDefinition.getTenantId())) {
         	latestProcessDefinition = processDefinitionManager
         			.findLatestProcessDefinitionByKeyAndTenantId(processDefinition.getKey(), processDefinition.getTenantId());
@@ -293,10 +293,10 @@ public class BpmnDeployer implements Deployer {
         			ActivitiEventBuilder.createEntityEvent(ActivitiEventType.ENTITY_CREATED, processDefinition));
         }
 
-        removeObsoleteTimers(processDefinition); //移除定时作业
+        removeObsoleteTimers(processDefinition); //移除过期定时作业
         addTimerDeclarations(processDefinition, timers);//添加定时作业
         /*
-        和上述 逻辑 大致一样,  具体 点进去 上面 ()  里面有注释
+        和上述定时作业的移除和添加 逻辑 大致一样,  具体 点进去 上面 ()  里面有注释
 
         这两个() 都是处理消息
 
@@ -313,7 +313,8 @@ public class BpmnDeployer implements Deployer {
         addSignalEventSubscriptions(processDefinition);//添加信号事件
 
         dbSqlSession.insert(processDefinition); //添加到会话缓存
-        addAuthorizations(processDefinition);//将流程启动人 信息 添加到会话缓存
+//
+        addAuthorizations(processDefinition);//将流程启动人(也就是谁能启动这个流程) 信息 添加到会话缓存
       //转发  ENTITY_INITIALIZED
         if(commandContext.getProcessEngineConfiguration().getEventDispatcher().isEnabled()) {
         	commandContext.getProcessEngineConfiguration().getEventDispatcher().dispatchEvent(
@@ -358,7 +359,7 @@ public class BpmnDeployer implements Deployer {
    * @param processDefinition
    * @param processEngineConfiguration
    * @param commandContext
-   *
+   *  初始化节点缓存数据
    */
   protected void addDefinitionInfoToCache(ProcessDefinitionEntity processDefinition, 
       ProcessEngineConfigurationImpl processEngineConfiguration, CommandContext commandContext) {
@@ -508,6 +509,9 @@ public class BpmnDeployer implements Deployer {
   }
   
   @SuppressWarnings("unchecked")
+  /*
+
+  * */
   protected void addMessageEventSubscriptions(ProcessDefinitionEntity processDefinition) {
     CommandContext commandContext = Context.getCommandContext();
     List<EventSubscriptionDeclaration> eventDefinitions = (List<EventSubscriptionDeclaration>) processDefinition.getProperty(BpmnParse.PROPERTYNAME_EVENT_SUBSCRIPTION_DECLARATION);
@@ -608,6 +612,8 @@ public class BpmnDeployer implements Deployer {
      }      
   }
   /*
+  更新节点缓存的()
+
    activiti:localization 元素 暂时支持的属性有 id ,name locale
    支持的子元素只有 documentation 只有process userTask, subProcess ,dataObject 等元素支持节点缓存功能
 
@@ -671,7 +677,7 @@ public class BpmnDeployer implements Deployer {
       localizationValuesChanged = true;
     }
     //
-    if (localizationValuesChanged) { //将infoNode更新到DB
+    if (localizationValuesChanged) { //将infoNode更新到DB,并不会更新缓存,这是Activiti的一个bug
       dynamicBpmnService.saveProcessDefinitionInfo(processDefinitionId, infoNode);
     }
   }

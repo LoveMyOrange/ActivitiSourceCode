@@ -18,10 +18,11 @@ package org.activiti.engine.impl.persistence.deploy;
  * 
  * @author Joram Barrez
  * 缓存接口类
- * 并没有更新缓存劫()
+ * 并没有更新缓存的()
  * 原因很简单,
  * 默认实现类 内部使用Map来维护缓存中的数据,
- * 基于Map结构的特性 没有必要单独定义更新方法
+ * 基于Map结构的特性 如果用户期望更新数据, 只需要调用 add() 就可以完成对旧数据的更新 ,
+ * 没有必要单独定义更新方法
  * 但是会衍生一个问题
  *  如果客户端不打算使用 DefaultDeploymentCache 那么如何实现 缓存的更新功能呢???
  *
@@ -44,3 +45,18 @@ public interface DeploymentCache<T> {
   void clear();
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

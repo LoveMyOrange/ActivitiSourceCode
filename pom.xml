@@ -642,8 +642,10 @@
     <module>modules/activiti-rest</module>
     <module>modules/activiti-webapp-rest2</module>
     <module>modules/activiti-spring</module>
+    <module>modules/activiti-crystalball</module>
 <!--    <module>modules/activiti-spring-boot</module>-->
     <module>modules/activiti-jmx</module>
+
   </modules>
 
   <build>

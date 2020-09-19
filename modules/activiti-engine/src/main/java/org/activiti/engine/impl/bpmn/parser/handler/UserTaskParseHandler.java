@@ -58,7 +58,6 @@ public class UserTaskParseHandler extends AbstractActivityBpmnParseHandler<UserT
     该对象由 createActivityOnCurrentScope() 负责创建 ,为何不直接在该类中进行对象的创建工作呢???
       因为大部分对象解析时都需要创建该对象  所以
       该对象的创建工作 在 此类的父类, AbstractBpmnParseHandler 中提供了默认实现
-
       代码复用原则 ,
       唯一需要区别的地方就是 对象的类型 以及属性 而已
 
@@ -74,9 +73,6 @@ public class UserTaskParseHandler extends AbstractActivityBpmnParseHandler<UserT
     此() 是为了 获取对象中(在这里指 任务节点) 已经存在的属性信息 并将其 设置到ActivityImpl 对象 的properties
     属性中, 该() 位于 UserTaskParseHandler中
     因为 该()主要解析 userTask 节点 ,所以完全没有必要 将 此() 放在 父类中
-
-
-
      */
 
     TaskDefinition taskDefinition = parseTaskDefinition(bpmnParse, userTask, userTask.getId(), (ProcessDefinitionEntity) bpmnParse.getCurrentScope().getProcessDefinition());

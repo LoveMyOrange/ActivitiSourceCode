@@ -84,10 +84,12 @@ import org.activiti.image.ProcessDiagramGenerator;
  * @desc
  *  该抽象类实现 EngineServices 接口 提供了一系列创建流程引擎配置类  ProcessEngineConfiguration 对象的()
  *
+ *
+ *
  *  该类中提供了一系列创建流程引擎配置类 实例对象的静态() 从而方便客户端获取流程引擎实例对象
  *  而无需关心内部实现细节
- *
- *  这里main 很多 () 都是创建 ProcessEngineConfiguration 对象 并没有提供构造 ProcessEngine 对象的()
+ *  疑问:
+ *  这个类中  很多 () 都是创建 ProcessEngineConfiguration 对象 并没有提供构造 ProcessEngine 对象的()
  *  因为只要能够 获取  ProcessEngineConfiguration 对象 就可以直接调用该对象的 buildProcessEngine() 创建ProcessEngine实例
  *
  */
@@ -95,7 +97,9 @@ public abstract class ProcessEngineConfiguration implements EngineServices {
   
   /** Checks the version of the DB schema against the library when 
    * the process engine is being created and throws an exception
-   * if the versions don't match. */
+   * if the versions don't match.
+   * cn: 当正在创建进程引擎 如果版本不匹配。引发异常
+   * */
   public static final String DB_SCHEMA_UPDATE_FALSE = "false";
   
   /** Creates the schema when the process engine is being created and 
@@ -111,11 +115,25 @@ public abstract class ProcessEngineConfiguration implements EngineServices {
 
   protected String processEngineName = ProcessEngines.NAME_DEFAULT;
   protected int idBlockSize = 2500;
+
+  /*
+  * 配置历史
+可以选择定制历史存储的配置。你可以通过配置影响引擎的历史功能。 参考历史配置。
+  * */
   protected String history = HistoryLevel.AUDIT.getKey();
-  protected boolean jobExecutorActivate;
+  /*
+  * JobExecutor是管理一系列线程的组件，可以触发定时器（也包含后续的异步消息）。 在单元测试场景下，很难使用多线程。
+  * 因此API允许查询(ManagementService.createJobQuery)和执行job (ManagementService.executeJob)，
+  * 所以job可以在单元测试中控制。 要避免与job执行器冲突，可以关闭它。
+默认，JobExecutor在流程引擎启动时就会激活。 如果不想在流程引擎启动后自动激活JobExecutor，可以设置
+  * */
+  protected boolean jobExecutorActivate;//
   protected boolean asyncExecutorEnabled;
   protected boolean asyncExecutorActivate;
-
+/*
+* 配置邮件服务器
+可以选择配置邮件服务器。Activiti支持在业务流程中发送邮件。 想真正的发送一个email，必须配置一个真实的SMTP邮件服务器。 参考e-mail任务。
+* */
   protected String mailServerHost = "localhost";
   protected String mailServerUsername; // by default no name and password are provided, which 
   protected String mailServerPassword; // means no authentication for mail server
@@ -126,21 +144,33 @@ public abstract class ProcessEngineConfiguration implements EngineServices {
   protected String mailSessionJndi;
   protected Map<String,MailServerInfo> mailServers = new HashMap<String,MailServerInfo>();
   protected Map<String, String> mailSessionsJndi = new HashMap<String, String>();
-
+  /*
+  * 一般不用设置，因为可以自动通过数据库连接的元数据获取。 只有自动检测失败时才需要设置。 可能的值有：{h2, mysql, oracle, postgres, mssql, db2}。 如果没使用默认的H2数据库就必须设置这项。
+  *  这个配置会决定使用哪些创建/删除脚本和查询语句。
+  * 但是我们应该 直接在配置类表明 这个哪个 DB类型, 因为如果不写, 它会自己进行一次 JDBC连接,得到DatabaseMeta 从而得到DB类型
+  * 我们直接写上 她就不用简历连接了,   优化点
+  * */
   protected String databaseType;
   protected String databaseSchemaUpdate = DB_SCHEMA_UPDATE_FALSE;
-  protected String jdbcDriver = "org.h2.Driver";
-  protected String jdbcUrl = "jdbc:h2:tcp://localhost/~/activiti";
-  protected String jdbcUsername = "sa";
-  protected String jdbcPassword = "";
-  protected String dataSourceJndiName = null;
+  protected String jdbcDriver = "org.h2.Driver";// DB的驱动类
+  protected String jdbcUrl = "jdbc:h2:tcp://localhost/~/activiti";//DB对应的JDBC URL
+  protected String jdbcUsername = "sa";//用户名
+  protected String jdbcPassword = "";//密码
+  /*
+  * 默认，Activiti的数据库配置会放在web应用的WEB-INF/classes目录下的db.properties文件中。 这样做比较繁琐，
+  * 因为要用户在每次发布时，都修改Activiti源码中的db.properties并重新编译war文件， 或者解压缩war文件，
+  * 修改其中的db.properties。
+    使用JNDI（Java命名和目录接口）来获取数据库连接， 连接是由servlet容器管理的，
+  * 可以在war部署外边管理配置。 与db.properties相比， 它也允许对连接进行更多的配置。
+  * */
+  protected String dataSourceJndiName = null;//
   protected boolean isDbIdentityUsed = true;
   protected boolean isDbHistoryUsed = true;
   protected HistoryLevel historyLevel;
-  protected int jdbcMaxActiveConnections;
-  protected int jdbcMaxIdleConnections;
-  protected int jdbcMaxCheckoutTime;
-  protected int jdbcMaxWaitTime;
+  protected int jdbcMaxActiveConnections;//连接池中处于被使用状态的连接的最大值 默认为10
+  protected int jdbcMaxIdleConnections;//连接池中处于空闲状态的连接的最大值
+  protected int jdbcMaxCheckoutTime;//连接被取出使用的最长时间，超过时间会被强制回收。 默认为20000（20秒）。
+  protected int jdbcMaxWaitTime;//这是一个底层配置，让连接池可以在长时间无法获得连接时， 打印一条日志，并重新尝试获取一个连接。（避免因为错误配置导致沉默的操作失败）。 默认为20000（20秒）。
   protected boolean jdbcPingEnabled = false;
   protected String jdbcPingQuery = null;
   protected int jdbcPingConnectionNotUsedFor;
@@ -238,10 +268,14 @@ public abstract class ProcessEngineConfiguration implements EngineServices {
   /** use one of the static createXxxx methods instead */
   protected ProcessEngineConfiguration() {
   }
-
+  /*
+  * 此（）用于创建 ProcessEngine 对象  因为activiti.cfg.xml配置文件中定义的流程引擎配置类为
+  * StaddaloneProcessEngineConfiguration ,但是该类中并没有定义 buildProcessEngine
+  * 那么 此() 肯定在其父类中进行了实现
+  * */
   public abstract ProcessEngine buildProcessEngine();
   /*
-  该() 直接调用
+  该() 直接调用 createProcessEngineConfigurationFromResource
   传入了两个参数   得知
   该方式构造流程引擎配置类实例需要的配置文件名称 必须为 activiti.cfg.xml 并且位于classpath根目录
   流程引擎配置类的id 必须是 processEngineConfiguration

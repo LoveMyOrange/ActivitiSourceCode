@@ -28,6 +28,9 @@ import org.springframework.context.ApplicationContextAware;
  * @author Tom Baeyens
  * @author Joram Barrez
  * @author Josh Long
+ *  ProcessEngineFactoryBean 此类是什么时候被Spring初始化的呢???
+ *  此工厂类负责生成 ProcessEngine 对象
+ *  看此类的 getObject() 中
  *
  */
 public class ProcessEngineFactoryBean implements FactoryBean<ProcessEngine>, DisposableBean, ApplicationContextAware {
@@ -59,7 +62,7 @@ public class ProcessEngineFactoryBean implements FactoryBean<ProcessEngine>, Dis
         if (processEngineConfiguration.getBeans() == null) {//设置bean
             processEngineConfiguration.setBeans(new SpringBeanFactoryProxyMap(applicationContext));
         }
-        //开始构造ProcessEngine对象
+        //开始构造ProcessEngine对象  .实现类是 SpringProcessEngineConfiguration
         this.processEngine = processEngineConfiguration.buildProcessEngine();
         return this.processEngine;
     }
@@ -83,9 +86,10 @@ public class ProcessEngineFactoryBean implements FactoryBean<ProcessEngine>, Dis
         也就是说 如果要使用Spring 管理事务, 则流程引擎配置类 必须为SpringProcessEngineConfiguration
          */
         if (processEngineConfiguration instanceof SpringProcessEngineConfiguration) { // remark: any config can be injected, so we cannot have SpringConfiguration as member
+
             SpringProcessEngineConfiguration engineConfiguration = (SpringProcessEngineConfiguration) processEngineConfiguration;
             if (engineConfiguration.getTransactionManager() != null) {
-                processEngineConfiguration.setTransactionsExternallyManaged(true);
+                processEngineConfiguration.setTransactionsExternallyManaged(true);//交给Spring管理事务
             }
         }
     }

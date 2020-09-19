@@ -73,3 +73,15 @@ public class EventJavaTest extends PluggableActivitiTestCase {
     repositoryService.deleteDeployment(deployment.getId());
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+

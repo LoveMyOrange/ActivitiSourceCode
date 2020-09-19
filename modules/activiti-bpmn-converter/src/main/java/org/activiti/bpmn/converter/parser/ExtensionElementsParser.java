@@ -29,13 +29,29 @@ import org.activiti.bpmn.model.SubProcess;
 /**
  * @author Tijs Rademakers
  * @desc
+ *  此类解析 监听器的元素
+ *
+ *   流程文档的三大要素都可以定义 执行监听器 和 任务监听器(仅限于在任务节点中进行定义 )
+ *   监听器通常作为扩展元素  extensionElements的子元素进行定义
+ *   因为监听器可以很方便的让客户使用和扩展,
+ *   执行监听器 以及 任务监听器  的解析器 都 继承了 BaseChildElementParser类 ,并且在父类中统一调度
+ *   既然 监听器通常作为 extensionElements的子元素存在, 所以首先找到 extensionElements元素解析器
+ *   也就是本类
+ *
+ *   看到此类 会发现,
+ *   虽然人物监听器同样也是作为扩展元素, 但是 这里并没有发现对任务监听器的 处理总计
+ *   其实不难理解,
+ *   因为流程三大要素中的节点都可以使用执行监听器, 而任务监听器只可以在任务节点定义和使用
+ *   因此任务监听器的解析工作,只需要在任务节点解析的时候处理即可
+ *   UserTaskXMLConverter
+ *
  *
  */
 public class ExtensionElementsParser implements BpmnXMLConstants {
   
   public void parse(XMLStreamReader xtr, List<SubProcess> activeSubProcessList, Process activeProcess, BpmnModel model) throws Exception {
     BaseElement parentElement = null;
-    // 解析 extensionElement  之前 先 确定  extensionElement 的父级元素类型
+    // 解析 extensionElements  之前 先 确定  extensionElements 的父级元素类型
     if (!activeSubProcessList.isEmpty()) {  //
       parentElement = activeSubProcessList.get(activeSubProcessList.size() - 1);
       
@@ -70,3 +86,22 @@ public class ExtensionElementsParser implements BpmnXMLConstants {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

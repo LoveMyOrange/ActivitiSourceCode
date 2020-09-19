@@ -18,6 +18,8 @@ import org.activiti.engine.impl.interceptor.CommandInterceptor;
 /**
  * @author Tom Baeyens
  * @desc 标准的流程引擎配置类
+ * 单独运行的流程引擎。Activiti会自己处理事务。 默认，数据库只在引擎启动时检测
+ * （如果没有Activiti的表或者表结构不正确就会抛出异常）。
  */
 public class StandaloneProcessEngineConfiguration extends ProcessEngineConfigurationImpl {
 

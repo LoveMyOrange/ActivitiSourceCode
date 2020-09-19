@@ -41,7 +41,7 @@ import org.activiti.bpmn.model.BpmnModel;
  *   1)inputstream  对应数据库表 ACT_GE_BYTEARRAY 表中的BYTES_列
  *   2)resourceName参数  资源名称  对应ACT_GE_BYTEARRAY 表中的NAME_列
  *   如果客户端没有干预部署器的初始化, 那么 资源名称必须以bpmn20.xml 或者bpmn作为后缀
- *   最后的结果是   ACT_RE_PROCDEF表中不会产生数据
+ *   如果后缀不正确,则最后的结果是   ACT_RE_PROCDEF表中不会产生数据
  *
  *   如果使用zip方式 部署  ,
  *   则需要确保, 流程文档的后缀为.bpmn20.xml .bpmn
@@ -80,23 +80,75 @@ import org.activiti.bpmn.model.BpmnModel;
  * 也就是说   如果 XML信息一样 但是 name属性不一样, 仍然会重新部署
  *
  *
+ *
+ *
+ *
  */
 public interface DeploymentBuilder {
-  //通过inputstream
+  /*
+  通过inputstream部署资源
+  内部使用一个Map来维护资源,表示一次部署中会有多个资源,这就是一对多的关系
+  调用 addInputStream  实际上就是往   Map里面添加元素,,
+  key是资源名称, value是解析 InputStream之后获得的byte数组
+   */
   DeploymentBuilder addInputStream(String resourceName, InputStream inputStream);
-  //通过资源文件所在的classpath
+  /*
+  通过资源文件所在的classpath
+  该方式会读取项目工程中classpath下流程文档, 使用该方式部署流程文档会与项目高度耦合
+  因此不建议使用
+  需要说明一点,如果使用该方式获取流程文档数据流, 则需要使用 /的方式对包名进行分割
+
+  形如: com/lovemyorange/demo/demo.bpmn
+
+  此() 也是往部署实体的Map里面添加 元素 但是不同的是
+  此()  会得到当前的ClassLoder对象,
+  调用getResourceAsStream() 将指定的classpath下的资源文件 转换为InputStream ,
+  再调用 addInputstream()
+  使用此() 并不需要指定名称参数 (resourceName) , Activiti会使用其传入的路径作为资源的名称
+
+
+   */
   DeploymentBuilder addClasspathResource(String resource);
-  //通过字符串的方式部署
+  /*
+  通过字符串的方式部署
+  适用场景:
+    流程文档的内容大部分是不变的,只有少部分属性在流程部署的时候需要跟外部进行交互从而动态填充
+    eg:  开发人员适用图形化工具绘制流程文档, 有可能人员组织机构或者其他信息需要从DB中动态查询
+    这时候就可以使用该方式结合模板引擎动态渲染数据, 常用的模板引擎有 ftl velocity 等
+    然后生成预期的流程文档内容,
+    该方式就是客户端自定义流程设计器与原生设计器的一种过渡方案
+
+    addString() 内部就是 调用 String的getBytes() 得到字节数组, 再将其放到部署对象的Map中
+   */
   DeploymentBuilder addString(String resourceName, String text);
-  //通过zip方式部署
+  /*
+  通过zip方式部署
+  上述几种方式只能一次部署一个文档, 如果期望一次部署多个流程文档, 很显然上面的方式是不支持的
+  但是很幸运,Activiti提供了部署打包机制, 可以把多个流程文档以及流程文档对应的图片或者表单
+  统一打包为.zip 的压缩文件(一遍使用这种方式) 或者.bar  压缩文件,
+  然后再对其进行部署
+
+  内部使用 迭代器方式循环遍历压缩包中的文件并读取相应的文件流 然后转为byte数组 写到资源表中
+   */
   DeploymentBuilder addZipInputStream(ZipInputStream zipInputStream);
-  //通过bpmnModel方式进行部署
+  /*
+  通过bpmnModel方式进行部署
+  使用该方式复杂点在于客户端需要手动构造流程引擎中的BpmnModel对象
+  如果开发人员平时设计流程文档过多依赖图形化工具, 可能对流程文档中定义的元素含义 与
+  引擎内部相对应的的元素属性承载类不熟悉, 此方式可能有点棘手,显得力不从心
+   */
   DeploymentBuilder addBpmnModel(String resourceName, BpmnModel bpmnModel);
   
   /**
    * If called, no XML schema validation against the BPMN 2.0 XSD.
    * 
    * Not recommended in general.
+   * 取消部署时的验证,
+   * 默认情况下 在部署时会对流程的XML进行验证, 包括验证是否符合 BPMN2.0规范,定义的流程是否可以执行
+   * (bpmn文件中  process的 isExecutable=true)
+   * 如果XML文件不符合规范或者定义的流程不可执行,那么将会在部署时抛出异常, 如果想跳过这两个验证
+   * 可以调用 此()
+   *
    */
   DeploymentBuilder disableSchemaValidation();
   
@@ -105,21 +157,25 @@ public interface DeploymentBuilder {
    * will be done against the process definition.
    * 
    * Not recommended in general.
+   * 同上
    */
   DeploymentBuilder disableBpmnValidation();
   
   /**
    * Gives the deployment the given name.
+   * 设置部署名称   ACT_RE_DEPLOYMENT   的 name列
    */
   DeploymentBuilder name(String name);
   
   /**
    * Gives the deployment the given category.
+   * 设置部署分类   ACT_RE_DEPLOYMENT   的 category 列
    */
   DeploymentBuilder category(String category);
   
   /**
    * Gives the deployment the given tenant id.
+   * 设置部署租户   ACT_RE_DEPLOYMENT   的 tenantId 列
    */
   DeploymentBuilder tenantId(String tenantId);
   
@@ -127,6 +183,8 @@ public interface DeploymentBuilder {
    * If set, this deployment will be compared to any previous deployment.
    * This means that every (non-generated) resource will be compared with the
    * provided resources of this deployment.
+   *
+   * 开启重复过滤 上面已经解释了 什么是重复过滤
    */
   DeploymentBuilder enableDuplicateFiltering();
   
@@ -134,6 +192,7 @@ public interface DeploymentBuilder {
    * Sets the date on which the process definitions contained in this deployment
    * will be activated. This means that all process definitions will be deployed
    * as usual, but they will be suspended from the start until the given activation date.
+   * 定时激活
    */
   DeploymentBuilder activateProcessDefinitionsOn(Date date);
 
@@ -144,3 +203,16 @@ public interface DeploymentBuilder {
   Deployment deploy();
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

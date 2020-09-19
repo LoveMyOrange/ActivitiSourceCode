@@ -85,6 +85,7 @@ public class ActivitiEventDispatcherImpl implements ActivitiEventDispatcher {
 
 		如果开发人员需要修改事件监听器 ,  那么 就必须对流程文档进行重新配置和部署
 
+		这里的代码 主要是为了 新老版本的兼容
 
 		* */
 	@Override

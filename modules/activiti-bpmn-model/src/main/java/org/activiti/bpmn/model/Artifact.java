@@ -15,6 +15,7 @@ package org.activiti.bpmn.model;
 /**
  * @author Tijs Rademakers
  * @desc  定义了 克隆 此对象的抽象()
+ *   BPMN2.0规范 中的 制品(制品 ,主要是为流程提供附加信息 包括 Group 和 注释 Text Annotation)
  */
 public abstract class Artifact extends BaseElement {
 

@@ -77,10 +77,10 @@ public abstract class JobExecutor {
   
   /** Starts the job executor */
   /*
-
+  作业执行器的启动
    */
   public void start() {
-    if (isActive) {  //该值默认为fasle
+    if (isActive) {  //该值默认为fasle //如果为true 表示作业执行器已经启动成功,直接return
       return;
     }
     log.info("Starting up the JobExecutor[{}].", getClass().getName());
@@ -106,7 +106,7 @@ public abstract class JobExecutor {
   
   /** Possibility to ensure everything is nicely initialized before starting the threads */
   /*
-
+  初始化作业执行器
    */
   protected void ensureInitialization() { 
   	if (acquireJobsCmd == null) {

@@ -13,21 +13,38 @@
 		<param-value>true</param-value>
 	</context-param>
 
-	<!-- To load the Spring context -->
+	<!-- To load the Spring context
+	 用来加载Spring Context
+	 此类中配置了一个Mapping 用来响应相关的 rest请求
+		dispatcherServlet.addMapping("/service/*");
+	 -->
 	<listener>
 		<listener-class>org.activiti.explorer.servlet.WebConfigurer</listener-class>
 	</listener>
 
-	<!-- To allow session-scoped beans in Spring -->
+	<!-- To allow session-scoped beans in Spring
+	这个监听器用来支持Spring Beans的 session-scoped作用域
+	-->
 	<listener>
 		<listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
 	</listener>
+	<!--
+	这个filter
+	判断请求地址是否以 "/ui"、"/VAADIN"、"/modeler.html"、"/editor-app"、"/service"、"/diagram-viewer"开头：
 
+若否，则将请求地址添加 "/ui"
+若是，判断是否以 "/service" 开头
+
+若是，判断用户是否登陆，没登录报错，登陆则继续
+若否，则继续
+	-->
 	<filter>
 		<filter-name>UIFilter</filter-name>
 		<filter-class>org.activiti.explorer.filter.ExplorerFilter</filter-class>
 	</filter>
-  
+	<!--
+	对 "/service" 开头的请求进行过滤，处理 jsonp 的请求：
+	-->
     <filter>
         <filter-name>JSONPFilter</filter-name>
         <filter-class>org.activiti.explorer.servlet.JsonpCallbackFilter</filter-class>
@@ -42,7 +59,10 @@
         <filter-name>JSONPFilter</filter-name>
         <url-pattern>/service/*</url-pattern>
     </filter-mapping>
-
+	<!--
+	响应 "/ui" 、"/VAADIN" 开头的请求：
+	查看 ExplorerApplicationServlet 发现出现了一大段用java拼html片段的代码，主要作用是渲染根据浏览器类型渲染不同的css：
+	-->
 	<servlet>
 		<servlet-name>Vaadin Application Servlet</servlet-name>
 		<servlet-class>org.activiti.explorer.servlet.ExplorerApplicationServlet</servlet-class>

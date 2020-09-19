@@ -24,6 +24,7 @@ import java.util.Set;
 import org.activiti.engine.ActivitiException;
 import org.activiti.engine.ActivitiIllegalArgumentException;
 import org.activiti.engine.DynamicBpmnConstants;
+import org.activiti.engine.ManagementService;
 import org.activiti.engine.delegate.Expression;
 import org.activiti.engine.delegate.TaskListener;
 import org.activiti.engine.delegate.event.ActivitiEventType;
@@ -35,6 +36,7 @@ import org.activiti.engine.impl.context.Context;
 import org.activiti.engine.impl.el.ExpressionManager;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.TaskEntity;
+import org.activiti.engine.impl.pvm.PvmActivity;
 import org.activiti.engine.impl.pvm.delegate.ActivityExecution;
 import org.activiti.engine.impl.task.TaskDefinition;
 import org.slf4j.Logger;
@@ -47,6 +49,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * activity implementation for the user task.
  * 
  * @author Joram Barrez
+ * UserTask行为类
  *  引擎是在何地调用节点缓存数据的呢???
  *    流程引擎执行节点的时候 ,又是如何获取并且解析节点缓存数据呢???
  *    任务节点的缓存信息是在 任务需要执行的地方 进行解析,
@@ -345,7 +348,11 @@ public class UserTaskActivityBehavior extends TaskActivityBehavior {
         }
       }
     }
-}
+
+
+
+
+  }
 
   /**
    * Extract a candidate list from a string. 
@@ -359,6 +366,7 @@ public class UserTaskActivityBehavior extends TaskActivityBehavior {
   /*
   主要用于  用户获取当前任务节点的属性值并且判断该属性值是否存在于节点缓存中
   如果存在 则开始使用
+  节点缓存这里可以使用JUEL表达式
    */
   protected Expression getActiveValue(Expression originalValue, String propertyName, ObjectNode taskElementProperties) {
     Expression activeValue = originalValue;

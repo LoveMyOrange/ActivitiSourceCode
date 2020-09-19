@@ -22,6 +22,9 @@ import org.activiti.engine.ActivitiException;
 
 /**
  * @author Tom Baeyens
+ * 此类负责管理所有的变量的处理类
+ * Activiti 如何设计这些变量处理类呢?
+ * 所有的变量处理类都需要实现 VariableType 接口
  */
 public class DefaultVariableTypes implements VariableTypes, Serializable {
 
@@ -35,10 +38,14 @@ public class DefaultVariableTypes implements VariableTypes, Serializable {
   }
   /*
   *  和addType     添加变量处理类
+  *
+  *
+  *
   * */
   public DefaultVariableTypes addType(VariableType type, int index) {
-    typesList.add(index, type);
-    typesMap.put(type.getTypeName(), type);      
+    typesList.add(index, type); //将type对象添加到typesList集合中
+    //key是 对象的 getTypeName() 返回值, value为type对象
+    typesMap.put(type.getTypeName(), type);//添加到 typesMap中  .map结构
     return this;
   }
 
@@ -60,7 +67,7 @@ public class DefaultVariableTypes implements VariableTypes, Serializable {
   * 查找变量处理类
   * 对于 DefaultVariableTypes类中的实现来说
   * 首先遍历typesList 结合
-  * 如果查找到了变量处理类, 该()直接地方拿回 ,否则报错
+  * 如果查找到了变量处理类, 该()直接返回 ,否则报错
   * 结论:
   *    对于同种类型的变量来说 , 在集合中的位置越靠前  使用的优先级越高
   * */
@@ -72,7 +79,9 @@ public class DefaultVariableTypes implements VariableTypes, Serializable {
     }
     throw new ActivitiException("couldn't find a variable type that is able to serialize " + value);
   }
-
+/*
+* 获取变量处理类在 typeList集合中位置
+* */
   public int getTypeIndex(VariableType type) {
     return typesList.indexOf(type);
   }

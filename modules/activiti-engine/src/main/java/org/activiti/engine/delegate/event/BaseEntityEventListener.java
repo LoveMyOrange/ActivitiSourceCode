@@ -21,6 +21,10 @@ package org.activiti.engine.delegate.event;
  * accordingly.
  * 
  * @author Frederik Heremans
+ *
+ * 这个事件监听器的基类可以用来监听实体相关的事件，可以针对某一类型实体，也可以是全部实体。 它隐藏了类型检测，
+ * 并提供了三个需要重写的方法：onCreate(..), onUpdate(..) 和 onDelete(..)，当实体创建，更新，或删除时调用。
+ * 对于其他实体相关的事件，会调用 onEntityEvent(..)。
  * 
  */
 public class BaseEntityEventListener implements ActivitiEventListener {

@@ -18,6 +18,10 @@ package org.activiti.engine.delegate.event;
  * 
  * @author Frederik Heremans
  * @desc  该接口定义了注册事件监听器,移除事件监听器, 转发事件监听器 以及设置 是否开启事件转发功能等方法
+ *
+ * 此类是默认的事件转发器, 该类负责管理所有的事件监听器
+ *
+
  */
 public interface ActivitiEventDispatcher {
 

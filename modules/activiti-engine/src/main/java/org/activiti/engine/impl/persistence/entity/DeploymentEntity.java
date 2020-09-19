@@ -37,7 +37,7 @@ public class DeploymentEntity implements Serializable, Deployment, PersistentObj
   protected String name;
   protected String category;
   protected String tenantId = ProcessEngineConfiguration.NO_TENANT_ID;
-  protected Map<String, ResourceEntity> resources;
+  protected Map<String, ResourceEntity> resources; //resources是  是Map结构 key : 资源名称 value 是ResourceEntity 对象
   protected Date deploymentTime;
   protected boolean isNew;
   
@@ -64,7 +64,7 @@ public class DeploymentEntity implements Serializable, Deployment, PersistentObj
 
   // lazy loading /////////////////////////////////////////////////////////////
   /*
-
+  主要用于获取 resources集合
    */
   public Map<String, ResourceEntity> getResources() {
     //判null
@@ -72,6 +72,9 @@ public class DeploymentEntity implements Serializable, Deployment, PersistentObj
       /*
       从DB中获取
       以id 值 (流程部署ID ) 为查询条件 从DB(ACT_GE_bytearray) 表中查找数据,
+
+      客户端部署流程文档的时候可以指定 resourceNmae值
+      形如 repositoryService.createDeployment().addInputStream(resourceName,inputStream);
        */
       List<ResourceEntity> resourcesList = Context
         .getCommandContext()

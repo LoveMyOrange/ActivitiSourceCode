@@ -16,9 +16,12 @@ package org.activiti.engine.impl.identity;
 
 /**
  * @author Tom Baeyens
+ * 流程实例的启动人的设置操作必须在流程实例启动之前进行
+ * 也可以调用 identityServcie.setAuthenticatedUserId("guorui");
+ * 此方法底层调用的就是此类的 这个()  等价的
  */
 public abstract class Authentication {
-
+  //使用 authenticatedUserIdThreadLocal 变量维护流程实例的启动人,
   static ThreadLocal<String> authenticatedUserIdThreadLocal = new ThreadLocal<String>();
   
   public static void setAuthenticatedUserId(String authenticatedUserId) {

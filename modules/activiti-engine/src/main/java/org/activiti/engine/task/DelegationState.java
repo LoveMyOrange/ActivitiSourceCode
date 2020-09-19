@@ -17,6 +17,7 @@ package org.activiti.engine.task;
 /** Defines the different states of delegation that a task can be in.
  * 
  * @author Tom Baeyens
+ * 任务委派的枚举
  */
 public enum DelegationState {
 
@@ -27,12 +28,12 @@ public enum DelegationState {
    * sent back to the owner. When that happens, the owner is set as 
    * the assignee so that the owner gets this task back in the ToDo.
    */
-  PENDING,
+  PENDING, //会用来查看   被委派且未处理的任务(委派给我)
   
   /**
    * The assignee has resolved the task, the assignee was set to the owner 
    * again and the owner now finds this task back in the ToDo list for review.
    * The owner now is able to complete the task. 
    */
-  RESOLVED
+  RESOLVED //会用来查看  被委派且已经处理完成的任务 (委派人来查看  我的委派)
 }

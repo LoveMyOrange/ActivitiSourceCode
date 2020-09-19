@@ -108,6 +108,8 @@ public class BpmnXMLUtil implements BpmnXMLConstants {
   }
   /*
   获取元素坐标
+  获取连线元素再XML文档中的行号和列号信息
+  因为此() 是静态() ,所以该() 被调用的同时 会触发 该类的静态代码块
    */
   public static void addXMLLocation(BaseElement element, XMLStreamReader xtr) {
     Location location = xtr.getLocation(); //获取到Location对象
@@ -157,7 +159,12 @@ public class BpmnXMLUtil implements BpmnXMLConstants {
         } else if (localParserMap.containsKey(xtr.getLocalName())) {
           BaseChildElementParser childParser = localParserMap.get(xtr.getLocalName()); //从通用子元素集合中获取查找
           //if we're into an extension element but the current element is not accepted by this parentElement then is read as a custom extension element
-          // 如果当前元素是 extensionElememnt 元素的子元素      &&  扩展元素的判断
+          /*
+           如果当前元素是 extensionElememnt 元素的子元素      &&  扩展元素的判断
+           accepts() 至关重要, 如果父类不能识别文档中定义的子元素, 那么引擎就认为这个元素是
+           扩展元素 然后对其进行处理
+           此()的处理过程 ,可以参考  FieldExtensionParser  或者 FormPropertyParser类的实现
+           */
           if (inExtensionElements && !childParser.accepts(parentElement)) {
           /*
           开始解析用户自定义扩展元素
@@ -176,8 +183,18 @@ public class BpmnXMLUtil implements BpmnXMLConstants {
           }
           //开始解析 通用子元素   根据子元素的名称 获取子元素解析器进行子元素的解析工作
           localParserMap.get(xtr.getLocalName()).parseChildElement(xtr, parentElement, model);
-        } else if (inExtensionElements) { //用户自定义扩展元素
+        } else if (inExtensionElements) { //如果是用户自定义扩展元素
           ExtensionElement extensionElement = BpmnXMLUtil.parseExtensionElement(xtr);
+          /*
+          不管是解析何种类型的子元素,都需要将元素解析之后的结果添加到父元素 parentElement中
+          那么  parentElement 是哪个对象呢???
+            首先:  parseChildElements() 是由哪一个对象调用的呢??
+            很显然该() 由具体解析类的实例对象进行调用
+            比如 现在开始解析任务节点, 则任务节点的解析类 UserTaskXMLConverter 解析任务节点时
+            会调用parseChildElements() 进行子元素的解析工作,
+            这时 parentElement 对象就对应 UserTaskXMLConverter 对象
+
+           */
           parentElement.addExtensionElement(extensionElement);
         }
 
@@ -193,6 +210,13 @@ public class BpmnXMLUtil implements BpmnXMLConstants {
   /*
   自定义元素解析原理
   自定义元素的属性个数不限, 定义多少个 就解析多少个
+  最后 会通过
+  parentElement.addExtensionElement(extensionElement);  将自定义元素的解析结果存储到父级元素中
+  addExtensionElement() 位于BaseElement中 ,此类作为所有元素承载类的父类存在
+  由此可知,所有的流程元素都可以扩展,
+  例如 任务节点 任务节点的属性承载类, UserTask就是BaseElement的子类之一
+
+
    */
   public static ExtensionElement parseExtensionElement(XMLStreamReader xtr) throws Exception {
     ExtensionElement extensionElement = new ExtensionElement(); //扩展元素承载类
@@ -212,7 +236,7 @@ public class BpmnXMLUtil implements BpmnXMLConstants {
         extensionAttribute.setNamespace(xtr.getAttributeNamespace(i));  //属性命名空间
       }
       if (StringUtils.isNotEmpty(xtr.getAttributePrefix(i))) {
-        //命名空间前缀
+        //属性的命名空间前缀
         extensionAttribute.setNamespacePrefix(xtr.getAttributePrefix(i));
       }
       //将extensionAttribute 设置到 extensionElement 中

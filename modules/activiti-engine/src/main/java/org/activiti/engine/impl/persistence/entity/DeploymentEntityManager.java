@@ -220,7 +220,7 @@ public class DeploymentEntityManager extends AbstractManager {
   }
 
     /*
-
+        以NAME_字段为查询条件从 ACT_RE_DEPLOYMENT表中查询数据,并且按照流程文档的部署时间进行降序排列
      */
   public DeploymentEntity findLatestDeploymentByName(String deploymentName) {
       // 调用 SqlSession实例的 selectList  并且传入SQL 语句  该SQL 在 Deployment.xml中 id值为   selectDeploymentsByName

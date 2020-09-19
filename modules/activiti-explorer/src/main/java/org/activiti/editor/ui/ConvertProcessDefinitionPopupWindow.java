@@ -97,7 +97,9 @@ public class ConvertProcessDefinitionPopupWindow extends PopupWindow implements 
     Label emptySpace = new Label("&nbsp;", Label.CONTENT_XHTML);
     addComponent(emptySpace);
   }
-  
+  /*
+  * 转化为模型的代码
+  * */
   protected void addButtons() {
     // Cancel
     Button cancelButton = new Button(i18nManager.getMessage(Messages.BUTTON_CANCEL));

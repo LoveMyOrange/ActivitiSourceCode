@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Joram Barrez
+ * 日志处理器顶层类
  */
 public interface EventLoggerEventHandler {
 	// 用于生成   EventLogEntryEntity 对象   此对象为 ACT_EVT_LOG 表对应的实体类
@@ -22,3 +23,15 @@ public interface EventLoggerEventHandler {
 	void setObjectMapper(ObjectMapper objectMapper);
 	
 }
+
+
+
+
+
+
+
+
+
+
+
+

@@ -33,6 +33,12 @@ import com.vaadin.ui.Button;
  * 
  * @author Frederik Heremans
  * @author Joram Barrez
+ * 转换为可编辑的模型的判断逻辑:
+ *
+ *     if(((ProcessDefinitionEntity) processDefinition).isGraphicalNotationDefined() == false) {
+ *       editProcessDefinitionButton.setEnabled(false);
+ *     }
+ *
  */
 public class ProcessDefinitionDetailPanel extends AbstractProcessDefinitionDetailPanel {
   

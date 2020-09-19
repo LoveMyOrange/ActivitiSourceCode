@@ -24,10 +24,33 @@ public class TaskListenerParser extends ActivitiListenerParser {
   public String getElementName() {
   	return ELEMENT_TASK_LISTENER;
   }
-  
+  /*
+  *
+  *
+  * */
   public void addListenerToParent(ActivitiListener listener, BaseElement parentElement) {
+    //判断当前元素是否为任务节点
     if (parentElement instanceof UserTask) {
+      //如果是 则通过 getTaskListeners ()  获取存储当前监听器的集合 ,然后将Listener元素添加到该集合中, 否则不予添加操作
       ((UserTask) parentElement).getTaskListeners().add(listener);
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

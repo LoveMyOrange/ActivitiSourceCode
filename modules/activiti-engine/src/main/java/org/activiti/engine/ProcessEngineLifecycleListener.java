@@ -18,6 +18,10 @@ package org.activiti.engine;
  * related to the process-engine lifecycle it is attached to.
  * 
  * @author Frederik Heremans
+ *  流程引擎的实例化和关闭时 会触发   此类的不同()
+ *   开发人员可以很方便的获取流程引擎的创建或者关闭事件 , 从而达到监听流程引擎整个生命周期的目的
+ *   但是 Activiti中并没有提供实现类,   我们自己实现就可以了
+ *
  */
 public interface ProcessEngineLifecycleListener {
 

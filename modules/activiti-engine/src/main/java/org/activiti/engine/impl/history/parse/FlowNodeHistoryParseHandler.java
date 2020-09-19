@@ -15,29 +15,12 @@ package org.activiti.engine.impl.history.parse;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.activiti.bpmn.model.BaseElement;
-import org.activiti.bpmn.model.BoundaryEvent;
-import org.activiti.bpmn.model.BusinessRuleTask;
-import org.activiti.bpmn.model.CallActivity;
-import org.activiti.bpmn.model.EndEvent;
-import org.activiti.bpmn.model.EventGateway;
-import org.activiti.bpmn.model.ExclusiveGateway;
-import org.activiti.bpmn.model.InclusiveGateway;
-import org.activiti.bpmn.model.IntermediateCatchEvent;
-import org.activiti.bpmn.model.ManualTask;
-import org.activiti.bpmn.model.ParallelGateway;
-import org.activiti.bpmn.model.ReceiveTask;
-import org.activiti.bpmn.model.ScriptTask;
-import org.activiti.bpmn.model.SendTask;
-import org.activiti.bpmn.model.ServiceTask;
-import org.activiti.bpmn.model.SubProcess;
-import org.activiti.bpmn.model.Task;
-import org.activiti.bpmn.model.ThrowEvent;
-import org.activiti.bpmn.model.UserTask;
+import org.activiti.bpmn.model.*;
 import org.activiti.engine.impl.bpmn.parser.BpmnParse;
 import org.activiti.engine.impl.history.handler.ActivityInstanceEndHandler;
 import org.activiti.engine.impl.history.handler.ActivityInstanceStartHandler;
 import org.activiti.engine.impl.pvm.process.ActivityImpl;
+import org.activiti.engine.impl.task.TaskDefinition;
 import org.activiti.engine.parse.BpmnParseHandler;
 
 /**
@@ -65,11 +48,15 @@ public class FlowNodeHistoryParseHandler implements BpmnParseHandler {
 
    任务结束 时间 , 任务节点结束的原因,(非必须)  节点持续的时间(结束事件 -开始时间)
 
+   为何需要更新 上面3个属性值呢/???  其他属性难道不需要修改或者更新吗??
+   稍后说明
+
    */
   protected static final ActivityInstanceEndHandler ACTIVITI_INSTANCE_END_LISTENER = new ActivityInstanceEndHandler();
   /*
   该类负责监听 流程 3大要素的开始通知 操作
   该操作主要是将任务节点 已知的基本信息插入到历史环节表
+  这就是 流程引擎 将 历史数据插入到 DB的时机
    */
   protected static final ActivityInstanceStartHandler ACTIVITY_INSTANCE_START_LISTENER = new ActivityInstanceStartHandler();
   /*
@@ -78,7 +65,10 @@ public class FlowNodeHistoryParseHandler implements BpmnParseHandler {
   内置记录监听器
 
   历史解析器  是如何添加到 对象解析器集合中的呢 ???
-    该过程调用了 BpmnParseHandlers类的 addHandler()
+   该过程调用了 BpmnParseHandlers类的 addHandlers()
+
+      解析 此集合中的 BaseElement对象时,只要执行了 本类的 parse() 就可以轻松的将
+      ActivityInstanceStartHandler  和 ActivityInstanceEndHandler 两个记录监听器自动添加到BaseElement对象中,
    */
   protected static Set<Class<? extends BaseElement>> supportedElementClasses = new HashSet<Class<? extends BaseElement>>();
   /*
@@ -86,8 +76,7 @@ public class FlowNodeHistoryParseHandler implements BpmnParseHandler {
   由于所有的流程元素对象都有可能添加内置记录监听器,
   因此没有必要单独为每一个元素添加一个历史解析器,
   统一维护即可
-  如果为每一个baseElement 对象单独定义一个历史解析器, 工作量大
-  不容易维护 扩展
+  如果为每一个baseElement 对象单独定义一个历史解析器, 工作量大不容易维护 扩展
   * */
   static {
     supportedElementClasses.add(EndEvent.class);
@@ -134,6 +123,10 @@ public class FlowNodeHistoryParseHandler implements BpmnParseHandler {
     	activity.addExecutionListener(org.activiti.engine.impl.pvm.PvmEvent.EVENTNAME_START, ACTIVITY_INSTANCE_START_LISTENER, 0);
     	activity.addExecutionListener(org.activiti.engine.impl.pvm.PvmEvent.EVENTNAME_END, ACTIVITI_INSTANCE_END_LISTENER);
     }
+
+
+
+
   }
 
 }

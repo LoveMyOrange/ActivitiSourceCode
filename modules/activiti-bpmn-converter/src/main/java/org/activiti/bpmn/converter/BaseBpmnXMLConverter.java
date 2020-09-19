@@ -79,14 +79,15 @@ public abstract class BaseBpmnXMLConverter implements BpmnXMLConstants {
       new ExtensionAttribute(ACTIVITI_EXTENSIONS_NAMESPACE, ATTRIBUTE_ACTIVITY_ISFORCOMPENSATION)
   );
   /*
-  在查找到元素对应的解析器 之后
-  会调用此()  解析元素
-
+  此类中的 convertXMLToElement(xtr,model) 是抽象()  该() 需要交给具体的子类去实现
   为何这样设计???
    因为流程文档中每个元素  都对应一个解析器, 用来实现自身的属性解析功能
    不同的解析器内部实现不同, 但是 都在父类的 convertXMLToElement() 统一调用
    该() 作为通用模板()存在
-   由于
+
+    由于BpmnXMLConstants接口 定义了流程文档中所有的元素以及属性字段
+  为了方便统一管理, 所有的元素解析器都直接或者间接的实现该接口
+
    */
   public void convertToBpmnModel(XMLStreamReader xtr, BpmnModel model, Process activeProcess, 
       List<SubProcess> activeSubProcessList) throws Exception {
@@ -108,7 +109,7 @@ public abstract class BaseBpmnXMLConverter implements BpmnXMLConstants {
     BaseElement parsedElement = convertXMLToElement(xtr, model);
     /*
 
-    根据元素对应的属性承载类 的类型进行复制, 该操作主要区分 网关和活动 (引用流程, 子流程 以及所有的Task节点)
+    根据元素对应的属性承载类 的类型进行赋值, 该操作主要区分 网关和活动 (引用流程, 子流程 以及所有的Task节点)
     两大要素
     所有的节点都需要添加id ,name 值
     如果元素是 网关类型 则需要填充 defaultFlow ,async ,notExclusive 属性值
@@ -171,7 +172,7 @@ public abstract class BaseBpmnXMLConverter implements BpmnXMLConstants {
     则将其 添加到 activeSubProcessList对象中
     否则添加到 activeProcess 中
      */
-      if (!activeSubProcessList.isEmpty()) { //子流程
+      if (!activeSubProcessList.isEmpty()) { //解析元素属于子流程
         activeSubProcessList.get(activeSubProcessList.size() - 1).addFlowElement(currentFlowElement);
       } else {
         activeProcess.addFlowElement(currentFlowElement);
@@ -294,6 +295,7 @@ public abstract class BaseBpmnXMLConverter implements BpmnXMLConstants {
       //如果不为空  将用户自定义的子元素 解析器集合 添加到  childParsers 中
       childParsers.putAll(additionalParsers);
     }
+    //委托 BpmnXMLUtil.parseChildElements解析子元素
     BpmnXMLUtil.parseChildElements(elementName, parentElement, xtr, childParsers, model);
   }
   

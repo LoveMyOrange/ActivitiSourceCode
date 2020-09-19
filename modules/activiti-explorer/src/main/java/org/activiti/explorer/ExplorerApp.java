@@ -38,6 +38,7 @@ import com.vaadin.terminal.gwt.server.HttpServletRequestListener;
 
 /**
  * @author Joram Barrez
+ * Activiti APP的页面入口就是此类
  */
 public class ExplorerApp extends Application implements HttpServletRequestListener {
   
@@ -70,7 +71,11 @@ public class ExplorerApp extends Application implements HttpServletRequestListen
   protected String crystalBallCurrentInstanceId = null;
   protected List<SimulationEvent> crystalBallSimulationEvents = null;
   protected transient SimulationDebugger crystalBallSimulationDebugger = null;
-  
+  /*
+  * 初始化Login页面
+  *
+  *
+  * */
   public void init() {
     setMainWindow(mainWindow);
     mainWindow.showLoginPage();

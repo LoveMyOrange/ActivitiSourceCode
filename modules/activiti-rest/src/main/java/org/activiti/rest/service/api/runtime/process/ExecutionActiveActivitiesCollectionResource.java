@@ -32,6 +32,8 @@ public class ExecutionActiveActivitiesCollectionResource extends ExecutionBaseRe
   @RequestMapping(value="/runtime/executions/{executionId}/activities", method = RequestMethod.GET, produces="application/json")
   public List<String> getActiveActivities(@PathVariable String executionId) {
     Execution execution = getExecutionFromRequest(executionId);
+    List<String> activeActivityIds = runtimeService.getActiveActivityIds("");
+
     return runtimeService.getActiveActivityIds(execution.getId());
   }
 }

@@ -1,0 +1,48 @@
+所有的事件类型都在 ActivitiEventType中
+
+1)  ProcessEngineImpl类    processEngineConfiguration.getEventDispatcher().dispatchEvent(
+       		ActivitiEventBuilder.createGlobalEvent(ActivitiEventType.ENGINE_CREATED));
+2)   ProcessEngineImpl类    processEngineConfiguration.getEventDispatcher().dispatchEvent(
+        		ActivitiEventBuilder.createGlobalEvent(ActivitiEventType.ENGINE_CLOSED));
+3)  部署资源的时候  DeployCmd类的
+ commandContext.getProcessEngineConfiguration().getEventDispatcher().dispatchEvent(
+	    		ActivitiEventBuilder.createEntityEvent(ActivitiEventType.ENTITY_CREATED, deployment));
+4) 部署资源的时候  DeployCmd类的
+	    commandContext.getProcessEngineConfiguration().getEventDispatcher().dispatchEvent(
+   	    		ActivitiEventBuilder.createEntityEvent(ActivitiEventType.ENTITY_INITIALIZED, deployment));
+5) BPMNDeployer类   往流程定义表中 插入数据的时机
+	commandContext.getProcessEngineConfiguration().getEventDispatcher().dispatchEvent(
+        			ActivitiEventBuilder.createEntityEvent(ActivitiEventType.ENTITY_CREATED, processDefinition));
+    commandContext.getProcessEngineConfiguration().getEventDispatcher().dispatchEvent(
+            			ActivitiEventBuilder.createEntityEvent(ActivitiEventType.ENTITY_INITIALIZED, processDefinition));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

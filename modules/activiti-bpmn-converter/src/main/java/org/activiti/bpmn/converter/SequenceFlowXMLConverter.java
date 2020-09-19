@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Tijs Rademakers
+ * 连线的  元素解析器
  */
 public class SequenceFlowXMLConverter extends BaseBpmnXMLConverter {
   
@@ -55,8 +56,8 @@ public class SequenceFlowXMLConverter extends BaseBpmnXMLConverter {
     BpmnXMLUtil.addXMLLocation(sequenceFlow, xtr);
     /*
     解析属性信息
-    常用的属性 有  sourceRef targetRef   name skipExpression
-    将这些属性信息 获取并且 填充到 sequenceFlow对象1中
+    SequenceFlow常用的属性 有  sourceRef targetRef   name skipExpression
+    将这些属性信息 获取并且 填充到 sequenceFlow对象中
      */
     sequenceFlow.setSourceRef(xtr.getAttributeValue(null, ATTRIBUTE_FLOW_SOURCE_REF));
     sequenceFlow.setTargetRef(xtr.getAttributeValue(null, ATTRIBUTE_FLOW_TARGET_REF));
@@ -64,8 +65,14 @@ public class SequenceFlowXMLConverter extends BaseBpmnXMLConverter {
     sequenceFlow.setSkipExpression(xtr.getAttributeValue(null, ATTRIBUTE_FLOW_SKIP_EXPRESSION));
     /*
     开始解析 当前元素的子元素
+    但是 此类中并没有该() 的实现,既然该类中没有提供实现,那么其父类肯定提供了默认实现,
+    所以找到当前类的父类 BaseBpmnXMLConverter
+
+    调用parseChildElements() 解析 sequenceFlow元素中的子元素,
     对于 sequenceFlow 元素来说 常用的子元素有文档元素 documentation
     扩展 元素 extensionElements ( 包括 执行监听器 以及 用户自定义元素 )
+
+
      */
     parseChildElements(getXMLElementName(), sequenceFlow, model, xtr);
     

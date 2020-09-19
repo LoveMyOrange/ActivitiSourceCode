@@ -17,6 +17,7 @@ package org.activiti.engine.impl.variable;
  * Interface describing a container for all available {@link VariableType}s of variables.
  * @author dsyer
  * @author Frederik Heremans
+ * 变量类型接口
  */
 public interface VariableTypes {
 

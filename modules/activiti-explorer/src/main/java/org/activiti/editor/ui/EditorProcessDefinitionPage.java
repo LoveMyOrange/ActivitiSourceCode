@@ -40,6 +40,24 @@ import com.vaadin.ui.Table;
 
 /**
  * @author Tijs Rademakers
+ * 流程设计工作区
+ * 8个功能的代码
+ * 1) 查询流程设计工作区模型列表
+ *    List<Model> modelList = repositoryService.createModelQuery().list();
+ * 2) 根据模型id获取模型信息
+ *      ModelEditorJsonRestResource.java
+ * 3) 新建模型
+ *  // NewModelPopupWindow.java
+ * 4) 删除模型
+ * repositoryService.deleteModel(modelData.getId());
+ * 5) 部署模型
+ * // EditorProcessDefinitionDetailPanel.java
+ * 6) 导入模型
+ * // ImportUploadReceiver.java
+ * 7) 导出模型
+ * // EditorProcessDefinitionDetailPanel.java
+ * 8) 查询左侧stencilset列表信息
+ * // StencilsetRestResource.java
  */
 public class EditorProcessDefinitionPage extends AbstractTablePage {
   

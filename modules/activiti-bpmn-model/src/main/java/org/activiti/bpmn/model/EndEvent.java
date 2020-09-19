@@ -14,6 +14,7 @@ package org.activiti.bpmn.model;
 
 /**
  * @author Tijs Rademakers
+ * 结束事件 -元素属性承载类
  */
 public class EndEvent extends Event {
 

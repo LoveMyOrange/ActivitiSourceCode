@@ -97,7 +97,8 @@ import org.apache.commons.lang3.StringUtils;
  * {@link ProcessEngineConfigurationImpl}.
  * 
  * @author Joram Barrez
- * 默认的行为类工厂
+ * 默认的行为类工厂   负责创建流程3大要素等行为类的创建工作
+ * AbstractBehaviorFactory
  */
 public class DefaultActivityBehaviorFactory extends AbstractBehaviorFactory implements ActivityBehaviorFactory {
   
@@ -426,3 +427,17 @@ public class DefaultActivityBehaviorFactory extends AbstractBehaviorFactory impl
   }
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

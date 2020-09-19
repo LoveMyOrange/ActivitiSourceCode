@@ -37,6 +37,11 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Tijs Rademakers, Saeid Mirzaei
+ *
+ * process userTask definitions 元素解析时 都有黑名单处理机制
+ *userTask节点的解析工作是围绕其对应的解析器 UserTaskXMLConverter 中的 convertXMLToElement
+ * 该() 首先解析任务节点中定义的常规属性, 然后委托
+ * BpmnXMLUtil类中的静态()   addCustomAttributes 解析自定义属性
  */
 public class UserTaskXMLConverter extends BaseBpmnXMLConverter {
 

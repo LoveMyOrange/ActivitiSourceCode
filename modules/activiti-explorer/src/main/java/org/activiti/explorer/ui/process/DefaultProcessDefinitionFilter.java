@@ -24,6 +24,8 @@ import com.vaadin.data.util.ObjectProperty;
 
 /**
  * @author Frederik Heremans
+ *
+ *
  */
 public class DefaultProcessDefinitionFilter implements ProcessDefinitionFilter, Serializable {
 
@@ -31,7 +33,10 @@ public class DefaultProcessDefinitionFilter implements ProcessDefinitionFilter, 
   protected static final String PROPERTY_NAME = "name";
   protected static final String PROPERTY_KEY = "key";
   
-  
+  /*
+  * 拿到 ProcessDefinitionQuery 对象之后 就可以通过 list 或者listPage 拿到
+  * 其中的ProcessDefinition对象
+  * */
   public ProcessDefinitionQuery getQuery(RepositoryService repositoryService) {
     return getBaseQuery(repositoryService)
             .orderByProcessDefinitionName().asc()

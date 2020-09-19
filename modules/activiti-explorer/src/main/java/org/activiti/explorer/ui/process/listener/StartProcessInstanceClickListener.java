@@ -35,6 +35,7 @@ import com.vaadin.ui.Button.ClickListener;
 /**
  * @author Frederik Heremans
  * @author Joram Barrez
+ *
  */
 public class StartProcessInstanceClickListener implements ClickListener {
 
@@ -58,7 +59,14 @@ public class StartProcessInstanceClickListener implements ClickListener {
     this.processDefinition = processDefinition;
     this.parentPage = processDefinitionPage;
   }
-
+  /*
+  * 启动流程代码
+  * 需要注意的是 ,在启动流程的时候还增加了一个判断, processDefinition是否定义了startForm
+  * 由于我们在实际使用中并不会使用到startForm 所以我们在改写时增加了一个能否发布的判断
+  * 是否存在startForm 若存在 则不能启动,
+  *
+  *
+  * */
   public void buttonClick(ClickEvent event) {
     // Check if process-definition defines a start-form
     
@@ -69,7 +77,6 @@ public class StartProcessInstanceClickListener implements ClickListener {
       // Just start the process-instance since it has no form.
       // TODO: Error handling
       ProcessInstance processInstance = runtimeService.startProcessInstanceById(processDefinition.getId());
-      
       // Show notification of success
       notificationManager.showInformationNotification(Messages.PROCESS_STARTED_NOTIFICATION, getProcessDisplayName(processDefinition));
       

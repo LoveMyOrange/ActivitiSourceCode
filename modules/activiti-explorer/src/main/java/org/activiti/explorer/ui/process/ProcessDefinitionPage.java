@@ -36,6 +36,7 @@ import com.vaadin.ui.Table;
 
 /**
  * @author Joram Barrez
+ *
  */
 public class ProcessDefinitionPage extends AbstractTablePage {
   

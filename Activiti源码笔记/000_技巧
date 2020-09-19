@@ -1,0 +1,290 @@
+1)ProcessEngineConfigurationImpl类中的 init() 中的 绝大部分() 初始化逻辑为
+首先判断客户端是否设置了指定的属性值, 如果客户端设置优先使用, 否则使用系统内置的值进行初始化工作
+对于这些让客户端扩展的属性 ,将其称为 开关属性 也许会更加容易理解一点
+2) Activiti 定义了一系列的事件 以及事件处理器 有哪些类型   都在ActivitiEventType中
+
+3)  * 由于 ProcessEngineConfigurationImpl 类中持有 ActivitiEventDispatcher 对象的引用
+ * 因此开发人员 可以通过  ProcessEngineConfigurationImpl 获取 ActivitiEventDispatcher
+ * 对象进行 事件监听器的 注册 移除 以及事件转发工作
+
+ 可以这样来 动态添加 移除 事件 监听器, 因为  事件监听器的注册 和移除 都在  ActivitiEventDispatcher
+
+    动态的添加 事件监听器, 当程序或者引擎重启之后 会消失, 除非再次执行添加操作
+
+
+4) DefaultActivityBehaviorFactory  主要负责 流程3大要素等行为类的创建工作,
+    DefaultListenerFactory 主要负责创建 任务监听器, 执行监听器 事件监听器
+
+
+5) 命名类 一般只看 excute() 核心逻辑都在这里面
+
+6) 前后置 部署器 可以 操作 或者修改的是 deployment, deploymentSettings 这两个参数
+
+7)
+Deployment deployment = repositoryService.createDeployment()
+//                    .enableDuplicateFiltering()//开启文档重复过滤
+
+这是 如何过滤????
+        自己 以前以为的错误了
+
+        实际上 他是这么判断
+
+        select * from ${prefix}ACT_RE_DEPLOYMENT D where NAME_=#{parameter} order by D.DEPLOY_TIME_ desc
+
+        那么  name 值 可控吗?
+                name值 是 deployment.name("") 设置的
+            直接对比 resources  也就是 将要部署的XML byte 和 已经库里面 已经存在的 XML byte 对比
+
+            如果一样  确定是重复文档,
+                    流程定义表中不会生成新的数据
+
+    看法::看情况使用吧
+
+8) 如果需要自己手写LRU   可以参照 DefaultDeploymentCache 类
+9) 最新 发现 工作流的 坑
+        关于 流程缓存
+        其实是没有毛病的
+        但是 不要 中途 把缓存加上 ,  比如 DB中 已经有数据了, 然后 你才把缓存加上,  会因为 缓存的问题报错
+
+        只需要在 缓存 刚开始 就加上就好了   (DB表都清空)
+
+10)
+/*
+    this 表示 processDefinitionEntity对象
+
+    设置ActivityImpl对象的parent属性值为当前执行对象, 也就是ProcessDefinitionEntity对象
+    通过该操作之后 ,所有的ActivityImpl对象与ProcessDefinitionEntity 双向关联
+    可以相互获取,
+    流程在流程文档部署时 可以通过引擎提供的API 获取ProcessDefinitionEntity对象, 然后通过该对象获取ActivityImpl 对象
+     */
+    activity.setParent(this);
+
+11) 任务节点与多实例节点可以通过 multiInstance属性或者行为类进行区分
+
+12)
+	ProcessDefinitionEntity pde = processDefinitionCache.get(processDefinitionId);
+
+		if (pde==null) {
+			//从缓存中获取 ProcessDefinitionEntity对象, 如果缓存丢失,则 再次获取(该操作会重新生成缓存数据)
+			pde = (ProcessDefinitionEntity) ((RepositoryServiceImpl) repositoryService)
+					.getDeployedProcessDefinition(processDefinitionId);
+		}
+
+13) 关于JavaEE中的链  ,, 如果让你设计 你如何设计
+        可以参考 Activiti的 命令拦截器链   内部用Stack 类型做的
+
+14 ) 关于使用 XXXService 获取commandExecutor对象  不仅仅 只有mangementService 可以获取
+
+  protected void initService(Object service) {
+    //首先判断 service 对象是否是ServiceImpl 对象, 如果是 则执行后续操作
+    if (service instanceof ServiceImpl) {
+      //所以可以很方便的通过 任意一个服务类 对象获取CommandExecutor 对象
+      ((ServiceImpl)service).setCommandExecutor(commandExecutor);
+    }
+  }
+
+用法:
+
+    {
+            Date now = new Date();
+            ServiceImpl serviceImpl =(ServiceImpl) repositoryService;
+            serviceImpl.getCommandExecutor().execute(new AutoStartProcessCmd(now,""));
+            serviceImpl.getCommandExecutor().execute(new Command<Object>() {
+
+                @Override
+                public Object execute(CommandContext commandContext) {
+                    ProcessDefinitionEntityManager processDefinitionEntityManager = commandContext.getProcessDefinitionEntityManager();
+                    ProcessDefinitionEntity latestProcessDefinitionByKey = processDefinitionEntityManager.findLatestProcessDefinitionByKey("");
+                    return null;
+                }
+            });
+
+        }
+
+
+
+
+15) 关于流程启动人 设置
+        Authentication.setAuthenticatedUserId() 即可
+
+
+16) 流程变量
+  流程实例 和执行实例的关系
+
+  通常情况下, 如果流程不存在分支 或者 多实例节点, 则流程实例id 和执行实例的id 相同
+  两者的值 分别对应  ACT_RU_EXECUTION  PROC_INST_ID 和 ID_
+
+  了解一下 执行实例树  (3级)
+        activityid  =null;    1级
+        activityid = 流程实例id ;  2级
+        XXX   XXX   XXX   执行实例n  3级
+
+
+  setVariables 和 setVariablesLocal 区别
+
+        setVariables设置的变量都是针对流程实例的(全局变量)     也就是 上图中的 2级节点
+        setVariablesLocal 可以针对 流程实例分支 (局部变量)     也即 执行实例   对应的是第3级
+
+
+默认情况下 变量都是针对流程实例的, 而局部变量的适用范围  就比较小(与执行实例的生命周期绑定 )
+只能针对执行还顺利 ,执行实例结束之后 ,后续的流程实例 无法通过 ACT_RU_VARIABLE 获取该变量值
+只可以通过ACT_HI_VARINST 表获取该变量值
+
+使用局部变量的好处
+    执行还顺利 和 流程实例 可以使用相同的变量  名称, 而且相互之间不会冲突, 使用全局变量,则变量名称相同时
+    后者会替换前者
+
+
+17） 当parseHandler 对象解析器 解析完成之后 的ActivityImpl对象 和TransitionImpl对象 他们都在 ProcessDefinitionEntity对象
+    中存储着,所以缓存此类很有必要
+
+          因为流程实例启动时, 要确保存在于流程文档中的开始节点已经被解析并成功注入到ExecutionEntity对象中
+          因为启动流程实例必须以开始节点为源头
+
+18)  流程实例到达目标节点之后 ,首先要做的工作就是 创建目标节点 以及 将该节点的数据 入库
+    创建目标节点之后 ,如果目标节点不能推动流程实例继续向下运转, 则其就是原子类结束的标志
+
+    可以一直跟进原子类, 最终可以发现, 如果当前原子类没有设置下一个需要处理的原子类, 则意味着
+    当前操作已经结束
+
+     ExecutionEntity 对象 ,该对象时 流程实例运转的核心对象 ,负责流程实例的创建,启动结束等操作
+        并持有 ProcessDefinitionEntity 对象 ,
+        所以  程序可以很方便的通过 E ExecutionEntity 对象获取ProcessDefinitionEntity对象
+        然后通过 ProcessDefinitionEntity 对象 获取PVM中的
+        ActivityImpl对象和 TransitionImpl对象
+
+    如果流程不存在分支或者多实例节点 则ExecutionEntity对象与流程实例对象是等价的
+
+    ExecutionEntity类是 ACT_RU_EXECUTION表的映射实体类 ,所以此类的属性与 此表的字段一一对应
+
+19)
+关于SubProcessActivityBehavior
+    在设计流程文档时,通常情况下期望将工作流与项目中的业务进行绑定, 因此Activiti提供了businessKey
+    但是业务键是流程实例级别的, 因此对于需要使用子流程或者引用流程场景下,
+    引擎并不会更新子流程或者引用流程的业务键, 这时就需要考虑如何修复该bug
+  *  completing() 可以在 子流程实例销毁之前从 子流程中 提取数据, giao() 供开发人员扩展使用
+     *  completed() 控制流程实例是否可以继续向下运转
+
+20) 自己创建的 行为类 不能是单例
+    还有一个问题,
+    eg;  我们自定义了一个  MyExeclusiveGatewayBehavior类  完全覆盖的了父类 leave()
+    换言之 ,如果同一个流程文档中定义了多个排他网关,则所有的排他网关都会执行我们自定义的leave()
+    而不会执行  默认的 ExclusiveGatewayActivityBehavoir 这样就有可能出现问题
+
+    因为有些排他网关需要执行自定义的leave()  而有些排他网关需要执行程序默认的leave()
+    如果存在这样的需求,怎么办呢?
+    其实很简单, 可以在排他网关中定义一个扩展属性,该属性值决定了排他网关行为类是按照扩展方式执行
+    还是默认的方式执行,
+    自定义的扩展属性值可以通过leave(ActivityExecution execution)中的execution参数进行获取
+    形如: execution.getActivity().getProperty("java");
+
+
+
+21) 我们虽然扩展了 行为类 ,但是会衍生一个新的问题
+    比如:自定义的网关行为类, 完全覆盖了 排他网关中的 leave
+
+    换言之,如果同一个流程 定义了多个排他网关, 则所有的排他网关 都会执行  自定义的
+    而不会执行 框架默认的,
+
+    因为有些排他网关需要执行自定义的, 有些需要执行程序默认的   如何做呢???
+
+    很简单, 添加一个扩展属性即可
+    该属性决定了排他网关行为类 是否按照扩展的逻辑执行
+
+    自定义的扩展属性值 可以 通过   leave中的 参数值 进行获取 , 形如 execution.getActivity() .getProperty("")
+
+
+试试这样可以不可以
+@Override
+    public ExclusiveGatewayActivityBehavior createExclusiveGatewayActivityBehavior(ExclusiveGateway exclusiveGateway) {
+//        exclusiveGateway.getAttributeValue()
+if(有){
+        return new MyExclusiveActivityBehaviorExt();
+}
+else{
+        return new 默认的
+}
+
+    }
+
+
+22) 关于 AbstractCustomSqlExecution
+ * 该抽象类 实现父类
+ * 并对 getMapperClass() 提供了实现 ,
+ * 由于该抽象类 没有显式定义无参构造()
+ * 因此开发人员自定义并且继承该类的时候 必须要有一个有参构造 (参数的个数  以及 类型 需要与父类中的有参构造 一致
+
+
+23)
+
+ * 该类 负责 负责 维护 DefaultHistoryManager ,
+ * 为什么需要将历史实体管理类进行单独维护
+ * 如果 开发二元觉得 Activiti  对历史数据处理不够友好,  可以自定义一个类 并且 重写 DefaultHistoryManager
+
+24)
+  * 该() 直接通过 Context类获取CommandContext 对象
+  * 然后委托该实例对象中的getSession() 进行工作的
+  * CommandContext 对象  ,然后委托该对象中的getSession() 进行
+  *
+  * CommandContext 对象既然可以在这里获取 ,说明此处 是以命令的方式, 执行该()的
+  * 因次只有命令才会被命令拦截器锁拦截
+  * 而命令拦截器 负责初始化 CommandContext 类
+
+
+
+25) 	 commandContext类中的attributes 属性就是专门为 存储日志清洗器 服务的  为什么? 详见 EventLogger类的 onEvent() 的解释
+
+
+26) Activiti的dao层 都有一个 XXXXXManager    然后还有一个 XXXEntity  都在 persistence.entity包下
+
+
+27)如何得到流程缓存
+      DeploymentManager deploymentManager = processEngineConfiguration.getDeploymentManager();
+      deploymentManager.getProcessDefinitionCache().add(processDefinition.getId(), processDefinition);
+
+
+28)  *  多实例任务节点和非多实例任务节点最终都用ActivityImpl 类型的对象进行表示,
+     *  唯一不同的地方就是对象的属性值 和 行为类
+
+
+29) 1> 如何对任务节点 userTask的扩展元素进行解析
+    实现比较简单,具体的做法就是自定义任务节点对象解析器,然后覆盖系统内置的解析器 UserTaskParseHandler
+    2> 如何存储扩展元素的值
+        因为ActivityImpl存储了活动节点的所有定义信息,所以在userTask元素解析时,通过setProperty方式
+        将userTask元素的扩展值存储到ActivityImpl对象中
+    3> 如何获取扩展元素的值?
+        因为ActivityImpl对象存储了所有节点的定义信息,换言之,只要能够获取到ActivityImpl对象
+        就可以通过 getProperty() 获取所有的元素信息值
+
+30)
+    如何在任务\执行监听器中  获取任务的ActivityImpl对象呢?
+    以DelegateTask 为例
+    ExecutionEntity executionEntity = (ExecutionEntity) delegateTask.getExecution();
+    //根据执行对象获取所有的PVM对象
+    Map<String, Object> properties = executionEntity.getActivity().getProperties();
+
+
+31) 字段注射模式目前仅仅应用于servcieTask的行为类中  其他都没用到
+
+32)
+    默认情况下,Activiti根据变量的名称查询该变量的类型时,会通过变量处理类一次查询所有的
+    变量处理类,直到查找到为止,如果开发人员没有定义 customPostVariableTypes 开关属性值
+    则 SerilizableType类用于处理序列化变量,这种做法是可取的,但是有缺点
+    1)开发人员必须谨慎使用 serialVersionUID字段
+    2)对于重构不友好,改变一个类或者字段名称就需要重新修改代码
+    3)序列化的对象是无法进行DB查询操作的
+    在实际项目中,可以把JSON字符串保存到 ACT_RU_VARIABLE表中的 text_字段
+    并可以通过DB直接查询, 但是这种实现方式受限于字符串的最大长度,默认情况下 4000字符
+
+
+
+
+
+
+
+
+
+
+
+
+

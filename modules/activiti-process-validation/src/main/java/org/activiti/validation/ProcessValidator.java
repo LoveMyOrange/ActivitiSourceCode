@@ -21,12 +21,18 @@ import org.activiti.validation.validator.ValidatorSet;
  * Validates a process definition against the rules of the Activiti engine to be executable 
  * 
  * @author jbarrez
+ *
+ * 默认的模型校验器
  */
 public interface ProcessValidator {
 
 	/**
 	 * Validates the provided {@link BpmnModel} and returns a list
-	 * of all {@link ValidationError} occurences found. 
+	 * of all {@link ValidationError} occurences found.
+	 *
+	 * 校验的()  返回 List<ValidationError> (ValidationError 封装的是验证之后的信息)
+	 * 如果集合长度为0,则说明 bpmnModel对象 已经成功通过校验,否则没有验证通过
+	 *
 	 */
 	List<ValidationError> validate(BpmnModel bpmnModel);
 	

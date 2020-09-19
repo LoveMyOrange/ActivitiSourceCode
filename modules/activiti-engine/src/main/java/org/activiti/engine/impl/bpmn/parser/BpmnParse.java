@@ -76,6 +76,9 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Tijs Rademakers
  * @author Joram Barrez
+ * pvm的入口
+ *  该对象存储了对象解析的公共属性值,
+ * 在BpmnDeployer类的 deploy()  调用了 此类的 execute()
  */
 public class BpmnParse implements BpmnXMLConstants {
 
@@ -171,7 +174,6 @@ public class BpmnParse implements BpmnXMLConstants {
   }
   /*
   PVM的入口
-
   这个()主要是用于 元素的解析 和对象的解析,  但是 最后 有一部分 却在 初始化 WebService 所需要的元素对象
   这里设计不合理,
        createImports();

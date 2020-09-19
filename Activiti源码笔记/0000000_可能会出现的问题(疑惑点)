@@ -6,3 +6,9 @@
                                             CommandContextInterceptor 类的execute() 就是这么做的
 
 
+/////////////
+在 流程模型管理页面中 点击部署按钮的 时候,  我调用了 模型校验器
+但是 在 BpmnParse类的 execute()   又来了一遍
+而且 这个() 用的 BpmnXMLConverter  而不是我弄的实现类
+到时候 需要断点走一遍
+

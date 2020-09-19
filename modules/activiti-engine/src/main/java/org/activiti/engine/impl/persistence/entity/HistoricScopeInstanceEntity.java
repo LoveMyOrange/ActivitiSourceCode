@@ -129,3 +129,24 @@ public abstract class HistoricScopeInstanceEntity implements PersistentObject, S
     this.deleteReason = deleteReason;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

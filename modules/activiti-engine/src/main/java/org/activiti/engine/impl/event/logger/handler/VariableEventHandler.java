@@ -25,9 +25,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Joram Barrez
- *  *  该抽象类 继承   VariableEventHandler
- *  *  作为 所有与变量操作相关的事件处理类的父类
+ *  *  该抽象类 继承   AbstractDatabaseEventLoggerEventHandler
+ *  *  同时作为 所有与变量操作相关的事件处理类的父类
  *  *  并且定义的模板方法  createData  具体的实现类3 个
+ *  	VariableCreatedEventHandler (创建变量)
+ *  	VariableUpdatedEventHandler (更新变量)
+ *  	VariableDeletedEventHandler (删除变量)
+ *
  */
 public abstract class VariableEventHandler extends AbstractDatabaseEventLoggerEventHandler {
 	

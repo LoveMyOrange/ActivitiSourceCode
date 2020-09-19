@@ -37,6 +37,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Joram Barrez
+ * 虽然此类作为 全局日志监听器 ,但其存在不太合理,完全不符合Activiti中引擎配置类处理开关属性的一贯作风,
+ * 在 initDatabaseEventLogging() 中 , 直接实例化了 本类,
+ * 如果开发人员不打算使用 此类处理日志,就需要重新定义一个类, 然后继承 流程引擎配置类,并重写父类的 initDatabaseEventLogging()
+ *
+ * 如果在 当前类中定义一个 ActivitiEventListener类型的变量(开关属性) 并根据变量值执行不同的逻辑,岂不是更好???
+ *
+ * 此类本质上 是一个全局事件监听器,
  */
 public class EventLogger implements ActivitiEventListener {
 	
@@ -53,9 +60,11 @@ public class EventLogger implements ActivitiEventListener {
 	
 	// Listeners for new events
 	protected List<EventLoggerListener> listeners;
-	
+	/*
+	* 用于初始化一系列的事件处理类
+	* */
 	public EventLogger() {
-		initializeDefaultHandlers();
+		initializeDefaultHandlers(); //负责将常用的事件以及事件对应的日志处理器 通过 addEventHandler() 添加到 eventHandlers集合中
 	}
 	
 	public EventLogger(Clock clock, ObjectMapper objectMapper) {
@@ -89,7 +98,7 @@ public class EventLogger implements ActivitiEventListener {
 		addEventHandler(ActivitiEventType.VARIABLE_UPDATED, VariableUpdatedEventHandler.class);
   }
 	/*
-
+		日志监听器的转发事件方法
 	 */
 	@Override
 	public void onEvent(ActivitiEvent event) {
@@ -100,21 +109,21 @@ public class EventLogger implements ActivitiEventListener {
 			CommandContext currentCommandContext = Context.getCommandContext();
 			// commandContext类中的attributes 属性就是专门为 存储日志清洗器 服务的
 			EventFlusher eventFlusher = (EventFlusher) currentCommandContext.getAttribute(EVENT_FLUSHER_KEY);
-			//如果 eventHandler 不为空
+			//如果 eventHandler 不为空 并且 日志清洗器不存在
 			if (eventHandler != null && eventFlusher == null) {
 				//创建 日志清洗器 , 该方法 返回值为null 并没有创建任何对象
 				/*
 				该方法存在的意义就是  方便开发人员自定义日志清洗器
 				 */
 				eventFlusher = createEventFlusher(); //
-				//
+				//如果createEventFlusher()  并没有成功创建日志清洗器
 				if (eventFlusher == null) {
 					//实例化系统内置的清洗器
 					eventFlusher = new DatabaseEventFlusher(); // Default
 				}
-				//并设置到 attributes 以便后续获取?
+				//并设置到 attributes 以便后续获取
 				currentCommandContext.addAttribute(EVENT_FLUSHER_KEY, eventFlusher);
-				//将 日志清晰日 添加到  CloseListener 集合中
+				//将 日志清洗器 添加到  CloseListener 集合中
 				currentCommandContext.addCloseListener(eventFlusher);
 				//用匿名类 遍历  当前类 中的listners 集合  并开始添加 日志监听器
 				currentCommandContext
@@ -182,7 +191,7 @@ public class EventLogger implements ActivitiEventListener {
 		}
 		
 		if (eventHandlerClass != null) {
-			//实例化  日志 处理器,  然后填充属性值 并作为该() 的返回值
+			//实例化  日志 处理器,  然后此() 通过反射 创建日志处理器,然后为其填充属性值 并作为该() 的返回值
 			return instantiateEventHandler(event, eventHandlerClass); //() 内部通过反射
 		}
 		//没找到 返回null

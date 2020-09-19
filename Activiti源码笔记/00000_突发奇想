@@ -1,0 +1,112 @@
+1)关于 钉钉上面 有一个 抄送节点
+
+那么我可不可以 用手工任务代替呢????
+
+    可以扩展 此属性
+    如果加了 抄送人 ,,, 那么  我扩展抄送, , 如果没有加人, 那么 还把他当做 原先的手工任务使用
+
+
+    但是 如果 手工任务  -->>>  在后续过程中  驳回到了发起人节点, 那么 继续走一遍 又会触发 抄送
+    如果解决  ??? 自己来一个表 记录???
+
+
+
+2)关于流程常用语
+
+系统默认 设置几个
+
+如果用户设置了常用语 ,那么 列表显示的是用户的, 如果用户没有设置 那么用的是 系统默认显示的
+
+3) 任务完成之后 通知 下一个环节的人
+    任务结束之后  告知 发起人
+
+
+4)
+ 节点消息通知
+ 关于 userTask1 --走到了userTask2
+
+        我需要给 userTask2的所有人发送  办理任务的提醒 应该怎么做
+        监听 TASK_CREATED事件 就可以 (Agile BPM )官方讲的是这么做的
+
+
+5) 当前审批人是自己 怎么跳过 ?
+    可以利用跳过表达式吗?  试一下
+
+6)流程仿真怎么做??
+    比如 测试所有节点跳过  ( 貌似也可以通过跳过表达式)
+
+7) 流程加班
+    userTask  想加人办理  addCandidateUser 或者group即可
+
+
+
+8) 历史数据存放至MonGoDB  ???
+        首先 Activiti关于历史
+            监听器 分为2个
+                内置记录任务监听器, 内置记录执行监听器
+            历史解析器
+                eg:
+                userTask任务节点需要进行历史数据的归档,那么该任务节点势必存在多个对象解析器,
+                第一类对象解析器负责将任务节点解析之后的信息注入PVM,
+                第二类也就是历史解析器 负责获取任务节点解析之后的结果ActivityImpl对象并为该对象自动注入内置记录监听器
+                只有这样,流程实例运转到该任务节点时才会自动触发不同事件类型的内置记录监听器
+
+                历史解析器的职责就是将这一系列的内置记录监听器注入到期作用节点所对应的ActivityImpl对象
+
+                /*
+                  * 默认的 历史解析器初始化的过程
+                  * */
+                  protected List<BpmnParseHandler> getDefaultHistoryParseHandlers() {
+                    List<BpmnParseHandler> parseHandlers = new ArrayList<BpmnParseHandler>();
+                    parseHandlers.add(new FlowNodeHistoryParseHandler()); //负责事件 活动, 网关 的内置记录监听器
+                    parseHandlers.add(new ProcessHistoryParseHandler());//负责process元素
+                    parseHandlers.add(new StartEventHistoryParseHandler());//负责startEvent
+                    parseHandlers.add(new UserTaskHistoryParseHandler());//负责userTask
+                    return parseHandlers;
+                  }
+
+
+                  //FlowNodeHistoryParseHadler 的parse（）  添加内置记录监听器???
+                  //1) 根据element对象的id 值 获取该对象的 PVM 对象 ActivityImpl
+                      ActivityImpl activity = bpmnParse.getCurrentScope().findActivity(element.getId());
+                      //根据类型 区分处理
+                      if(element instanceof BoundaryEvent) {// 如果是 BoundaryEvent 则为其添加结束记录监听器
+                      	// A boundary-event never receives an activity start-event
+                      	activity.addExecutionListener(org.activiti.engine.impl.pvm.PvmEvent.EVENTNAME_END, ACTIVITY_INSTANCE_START_LISTENER, 0);
+                      	activity.addExecutionListener(org.activiti.engine.impl.pvm.PvmEvent.EVENTNAME_END, ACTIVITI_INSTANCE_END_LISTENER, 1);
+                      } else {//否则 添加 开始和结束类型的监听器,  监听器的事件类型决定了历史归档记录操作的先后顺序
+                      	activity.addExecutionListener(org.activiti.engine.impl.pvm.PvmEvent.EVENTNAME_START, ACTIVITY_INSTANCE_START_LISTENER, 0);
+                      	//
+                      	activity.addExecutionListener(org.activiti.engine.impl.pvm.PvmEvent.EVENTNAME_END, ACTIVITI_INSTANCE_END_LISTENER);
+                      }
+                    }
+
+                    只有存在于历史解析器中的supportedElementClasses集合中的BaseElement对象才可以动态添加内置记录监听器
+
+
+                    上述代码可以做到添加全局执行监听器--->
+                    也可以做到添加任务任务监听器
+                        需要先得到 ActivityImpl对象
+                        TaskDefinition taskDefinition = (TaskDefinition) activity.getProperty("taskDefinition");
+                            ActivitiListener activitiListener = new ActivitiListener();
+                            activitiListener.setEvent("create");
+                            activitiListener.setImplementationType("delegateExpression");
+                            activitiListener.setImplementation("${myTaskListener}");
+                            taskDefinition.addTaskListener("create",bpmnParse.getListenerFactory().createDelegateExpressionTaskListener(activitiListener));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

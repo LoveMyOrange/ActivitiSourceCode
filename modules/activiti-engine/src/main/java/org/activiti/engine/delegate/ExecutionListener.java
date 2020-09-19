@@ -22,6 +22,8 @@ import java.io.Serializable;
  *  
  * @author Tom Baeyens
  * @author Joram Barrez
+ *
+ * 执行监听器 需要实现的类
  */
 public interface ExecutionListener extends Serializable {
 

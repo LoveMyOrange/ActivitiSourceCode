@@ -45,12 +45,21 @@ public class FieldExtensionParser extends BaseChildElementParser {
 
    */
   public void parseChildElement(XMLStreamReader xtr, BaseElement parentElement, BpmnModel model) throws Exception {
-    
+      /*
+      验证filed元素是否可以进行解析
+      目前只有 ActivitiListenr ServcieTask SendTask 可以定义filed元素
+       */
+
     if (!accepts(parentElement)) return;
     
     FieldExtension extension = new FieldExtension(); //activiti:field 元素的承载类
     BpmnXMLUtil.addXMLLocation(extension, xtr);
-    //开始  获取 field 元素中的 name   stringValue  expression  填充到FieldExtension对象中
+    /*
+    开始  获取 field 元素中的 name   stringValue  expression  填充到FieldExtension对象中
+    这里解析的是 filed元素中的属性
+    eg:
+    <activiti:filed  name="a" expression=""  stringvalue="">
+     */
     extension.setFieldName(xtr.getAttributeValue(null, ATTRIBUTE_FIELD_NAME));
     
     if (StringUtils.isNotEmpty(xtr.getAttributeValue(null, ATTRIBUTE_FIELD_STRING))) {
@@ -62,6 +71,11 @@ public class FieldExtensionParser extends BaseChildElementParser {
     } else {
       boolean readyWithFieldExtension = false;
       try {
+        /*
+        循环遍历filed元素中的子元素 string expression 并填充到 FiledExtension对象中
+        这里解析的是 filed元素中的子元素
+        <activiit:filed name="a"><activiti:string/> <activiti:expression> </activiti:filed>
+         */
         while (readyWithFieldExtension == false && xtr.hasNext()) {
           xtr.next();
           if (xtr.isStartElement() && ELEMENT_FIELD_STRING.equalsIgnoreCase(xtr.getLocalName())) {
@@ -78,7 +92,7 @@ public class FieldExtensionParser extends BaseChildElementParser {
         LOGGER.warn("Error parsing field extension child elements", e);
       }
     }
-    
+    //根据 parentElement 类型 进行区分处理 并将 extension对象添加到父类中
     if (parentElement instanceof ActivitiListener) {
       ((ActivitiListener) parentElement).getFieldExtensions().add(extension);
     } else if (parentElement instanceof ServiceTask) {
@@ -88,3 +102,14 @@ public class FieldExtensionParser extends BaseChildElementParser {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+

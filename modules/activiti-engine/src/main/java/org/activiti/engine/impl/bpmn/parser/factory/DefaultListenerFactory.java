@@ -49,6 +49,8 @@ import org.activiti.engine.task.Task;
  * the {@link ProcessEngineConfigurationImpl}.
  * 
  * @author Joram Barrez
+ *
+ * 该类主要负责创建 任务监听器, 执行监听器, 事件监听器
  */
 public class DefaultListenerFactory extends AbstractBehaviorFactory implements ListenerFactory {
 	

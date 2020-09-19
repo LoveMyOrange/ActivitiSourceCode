@@ -44,7 +44,10 @@ public class ExplorerApplicationServlet extends AbstractApplicationServlet {
     super.init(servletConfig);
     applicationContext = WebApplicationContextUtils.getWebApplicationContext(servletConfig.getServletContext());
   }
-
+  /*
+  * 从此行代码可以看出,整个前端页面由 ExplorerApp 来渲染
+  *
+  * */
   @Override
   protected Class< ? extends Application> getApplicationClass() throws ClassNotFoundException {
     return ExplorerApp.class;

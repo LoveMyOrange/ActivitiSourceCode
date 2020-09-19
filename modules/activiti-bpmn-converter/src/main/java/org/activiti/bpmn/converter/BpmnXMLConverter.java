@@ -101,13 +101,27 @@ import org.xml.sax.SAXException;
  * @desc 此类中并没有构造()
  * 所以 分析静态代码块
  *
+ *
+ *
+ *
  * 该类的静态代码块主要用于初始化类中的各种属性值 并且类中的静态代码块只会被执行一次
  * 由于实例化BpmnXMLConverter  类的同时 该类已经被JVM 加载     所以静态代码块 会先执行
- *
+ * 而静态代码块会调用  addConverter()
  * 最终 会将流程元素 以及其对应的解析器添加 到
+ *  convertersToBpmnMap,convertersToXMLMap集合中
  *
- *  convertersToBpmnMap
- *  convertersToXMLMap
+ *  流程文档中的大部分元素与之对应的解析器是 一一对应关系, 但是对于dataObject 类型的元素来说
+ *  就需要特殊处理一下,因为该类型的元素仅仅是数据类型不同而已, 其他属性定义几乎完全相同
+ *  常用数据类型有 String Boolean Integer 等,因此没必要为每一种具体的数据类型单独定义一个解析器
+ *  只需要在dataObject元素对应的解析器中根据数据类型进行区分处理即可
+ *  附带的好处就是 可以将不同数据类型的元素解析工作集中起来管理, 这样也可以控制不同数据类型的元素
+ *  按照指定的先后顺序进行解析
+ *
+ *  ValuedDataObjectXMLConverter 类负责解析dataObject元素
+ *
+ *  规律:
+ *   元素解析之后 都会将解析结果添加到父级元素(process 或者subprocess中) 有这样一个问题
+ *   节点和连线如何关联呢????
  *
  */
 public class BpmnXMLConverter implements BpmnXMLConstants {
@@ -118,8 +132,15 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
   protected static final String DEFAULT_ENCODING = "UTF-8";
     /*
     实例化一系列元素解析器
-    使用Map结构的好处
+    此Map 存储的是 元素  以及 元素对应的解析器,
+    key 为 String ,存储流程文档中定义的元素名称, 对应 cnverter.getXMLElementName() 返回值(流程文档中元素的名称)
+    value为 元素对应的解析器,
+    eg:
+    解析结束事件(endEvent) 元素的时候 可以直接从 此Map中查找 key为 endEvent的值 这样就查询到了 EndEventXMLConverter类
 
+
+
+    使用Map结构的好处
     如果使用List 会存在如下问题
     1)需要U型你换遍历解析器集合才能查找到适配当前元素的解析器,
     2)客户端向该集合添加元素解析器时 可以能会造成同一个元素的解析器有多个,
@@ -256,14 +277,14 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
     this.startEventFormTypes = startEventFormTypes;
   }
   /*
+
   使用BPMN20.XSD 文件以及该文件所引入的 其他XSD 文件来验证流程文档中定义的元素 是否符合其约束
-  只要validateSchema 为true 才会开启流程文档元素的验证工作
-  根据enableSafeBpmnXML 参数执行不同的逻辑
+  只有validateSchema 为true 才会开启流程文档元素的验证工作
+  开启之后,根据enableSafeBpmnXML 参数执行不同的逻辑
+    结论:
 
   不管使用什么方式验证 schema   首先都会调用 createScheam 创建Schema 对象
   然后基于该对象获取验证器, 最后直接使用验证器进行流程文档的验证工作,
-
-
    */
   public void validateModel(InputStreamProvider inputStreamProvider) throws Exception {
     Schema schema = createSchema();
@@ -281,17 +302,25 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
     validator.validate(new StAXSource(xmlStreamReader)); //使用的是STAXSource对象
   }
     /*
+    BPMN_XSD 位于 activiti-bpmn-converter.jar包中
+
         classloader 的使用优先级最高
-        如果开发人员 想要为classloader复制,
-        只需要自定义一个 文件转换器 并且继承BpmnXMLConverter类
+        如果开发人员 想要为classloader 赋值
+        只需要自定义一个 文档转换器 并且继承BpmnXMLConverter类
         然后为其设置classloader属性值即可
      */
   protected Schema createSchema() throws SAXException {
+      //获取工厂类
     SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI); //获取工厂类
     Schema schema = null;
-    //判断classloader 是否存在
+    //判断当前类的 classloader 是否存在
     if (classloader != null) {
-        //直接通过类加载器 获取BPMN_XSD 获取文件流
+
+        /*
+        如果存在则, 直接通过类加载器 获取BPMN_XSD 获取文件流
+        newSchema() 依赖 BPMN_XSD资源文件
+
+         */
       schema = factory.newSchema(classloader.getResource(BPMN_XSD)); //
     }
     //判断schema为空
@@ -311,6 +340,10 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
   可以将BPMNModel 理解为 流程文档解析之后的内存对象
   流程文档中的所有元素的解析结果 都存储在 该对象中
   开发人员可以直接通过该对象 获取流程文档中定义的所有元素的信息
+
+    在正是环境中 enableSafeBpmnXml 建议设置为 true,这样Activiit引擎解析流程文档时会理解验证
+    流程文档中定义的元素是否符合BPMN20.xsd文件的约束要求, 方便及早发现错误信息
+
    */
   public BpmnModel convertToBpmnModel(InputStreamProvider inputStreamProvider, boolean validateSchema, boolean enableSafeBpmnXml) {
     return convertToBpmnModel(inputStreamProvider, validateSchema, enableSafeBpmnXml, DEFAULT_ENCODING);
@@ -344,7 +377,7 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
           } else {
             validateModel(xtr);
           }
-            // 验证完成之后  需要重新打开,  InputStreamReader 并且实例化 XMLStreamReader类
+            // 验证完成之后  需要重新打开  InputStreamReader 并且实例化 XMLStreamReader类
           in = new InputStreamReader(inputStreamProvider.getInputStream(), encoding);
           //因为Schema文件验证完毕之后该流已经被关闭了, 因此需要重新打开该流
           xtr = xif.createXMLStreamReader(in);
@@ -377,7 +410,7 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
         关于此类 解析流程文档命名空间
             因为STAX 解析流程文档的熟悉怒是按照 流程文档中元素定义的先后顺序自上而下解析的
 
-            所以首先解析 父元素 definitions 该元素对应的解析器为DefinitionsParser
+            所以首先解析 父元素 definitions 该元素对应的解析器为 DefinitionsParser
             该元素可以定义一系列命名空间, URL
             形如<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"></definitions>
             因为流程文档中的元素名称是由开发者定义的 ,为了避免命名冲突
@@ -396,12 +429,14 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
             所以该类型的元素解析器都会在当前类中进行实例化,
             有关外围元素的解析处理逻辑可以查看对应的解析器
             例如 : 消息元素的解析
-            messageFlowParse.parse(xtr,model)
+            messageFlowParser.parse(xtr,model)  此() 需要2个入参
             xtr 参数   程序可以根据该参数值从流程文档中解析元素的属性值
             model BpmnModel对象,元素解析完毕, 可以直接将元解析结果存储到该元素对应的属性承载类实例对象中
                     然后再将其添加到BpmnModel对象中 ,因为外围元素种类不多
                     平时开发也不经常使用,为了减少风险,增加可控度
-                    外围元素的定义以及解析不建议修改
+                    外围元素的定义以及解析不建议修改和扩展
+
+
 
         解析通用元素
                 流程文档中通用元素的种类非常多
@@ -579,8 +614,8 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
 	}
 	/*
 	节点 和连线 如何关联???
-	    1)循环比阿尼所有已经解析完毕的process对象, 如果流程文档中定义 有participant 元素 (用到)
-	    则循环遍历所有的  泳道(pool
+	    1)循环遍历所有已经解析完毕的process对象, 如果流程文档中定义 有participant 元素 (泳道)
+	    则循环遍历所有的  泳道(pool)
 	    并且判断process对象中的id 值 是否与pool对象中的processRef 值相等,,
 	    如果2者相等,  则设置pool对象中的 executuable 属性值  (是否 可以执行 )
 
@@ -593,7 +628,7 @@ public class BpmnXMLConverter implements BpmnXMLConstants {
 	      如果flowElement对象 类型是  SequenceFlow
 	      首先获取 连线中的源节点  sourceNode
 	      并将sequnecFlow 设置到 sourceNode中
-	      然后获取连线中的目标 targetNode   并且 sequneceFlow 设置打 targetNdoe中
+	      然后获取连线中的目标 targetNode   并且 sequneceFlow 设置到 targetNdoe中
 	       */
   	  if (flowElement instanceof SequenceFlow) {
         SequenceFlow sequenceFlow = (SequenceFlow) flowElement;

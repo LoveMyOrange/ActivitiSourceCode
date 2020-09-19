@@ -45,6 +45,8 @@ import org.activiti.validation.ValidationError;
  * 可以参考NeedsActiveTaskCmd 的execute()
  *
  * 负责对流程文件的部署以及流程的定义进行管理
+ *
+ *
  */
 public interface RepositoryService {
 

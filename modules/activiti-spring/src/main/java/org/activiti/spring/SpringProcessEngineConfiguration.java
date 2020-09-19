@@ -72,7 +72,8 @@ public class SpringProcessEngineConfiguration extends ProcessEngineConfiguration
     @Override
     public ProcessEngine buildProcessEngine() {
         /*
-        委托父类构造ProcessEngine对象, 因为当前类  的父类是ProcessEngineConfigurationImpl
+        委托父类构造ProcessEngine对象, 因为当前类  的父类是 ProcessEngineConfigurationImpl  所以此段代码会触发
+        ProcessEngineConfigurationImp类的 buildProcessEngine()
          */
         ProcessEngine processEngine = super.buildProcessEngine();
         //通知ProcessEngines类 ProcessEngine已经初始化

@@ -37,6 +37,7 @@ import org.activiti.engine.repository.ProcessDefinition;
  * @author Tom Baeyens
  * @author Falko Menge
  * @author Joram Barrez
+ * 部署管理器类
  */
 public class DeploymentManager {
 

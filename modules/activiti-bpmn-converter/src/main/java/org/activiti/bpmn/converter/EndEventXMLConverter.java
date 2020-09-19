@@ -22,13 +22,18 @@ import org.activiti.bpmn.model.EndEvent;
 
 /**
  * @author Tijs Rademakers
+ * 结束事件  元素解析器
  */
 public class EndEventXMLConverter extends BaseBpmnXMLConverter {
-  
+  /*
+  * 元素的类型
+  * */
   public Class<? extends BaseElement> getBpmnElementType() {
     return EndEvent.class;
   }
-  
+  /*
+  * 流程文档中元素的名称
+  * */
   @Override
   protected String getXMLElementName() {
     return ELEMENT_EVENT_END;
@@ -52,3 +57,21 @@ public class EndEventXMLConverter extends BaseBpmnXMLConverter {
     writeEventDefinitions(endEvent, endEvent.getEventDefinitions(), model, xtw);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

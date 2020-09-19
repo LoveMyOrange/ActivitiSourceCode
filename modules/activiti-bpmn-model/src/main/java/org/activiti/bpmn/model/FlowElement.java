@@ -18,7 +18,8 @@ import java.util.List;
 
 /**
  * @author Tijs Rademakers
- * @desc 继承BaseElement   封装了元素定义的名称(name  描述(documentation) 执行监听器,(executionLitener)
+ * @desc 继承BaseElement
+ * 封装了元素定义的名称(name  描述(documentation) 执行监听器,(executionLitener)
  * 属性信息以及克隆 此对象的 抽象()
  */
 public abstract class FlowElement extends BaseElement implements HasExecutionListeners {

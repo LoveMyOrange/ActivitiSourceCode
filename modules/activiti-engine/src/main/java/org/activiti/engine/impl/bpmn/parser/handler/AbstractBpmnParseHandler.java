@@ -122,7 +122,11 @@ public abstract class AbstractBpmnParseHandler<T extends BaseElement> implements
     //这里scopeElement在ScopeImpl类中    对应ProcessDefinitionEntity 类
     ActivityImpl activity = scopeElement.createActivity(flowElement.getId());
     bpmnParse.setCurrentActivity(activity);//设置当前解析的元素 添加到bpmnParse 对象中
-    //填充属性 ,
+    /*
+    填充属性 , 常用的属性有  name docuemntation, type
+    如果元素类型为 Activity  活动, 则需要设置 default以及 isForCompensation
+    如果是 Gateway (网关)  则需要设置 default属性值
+     */
     activity.setProperty("name", flowElement.getName()); //设置name值
     activity.setProperty("documentation", flowElement.getDocumentation());  //设置描述信息
     if (flowElement instanceof Activity) {//判断元素的类型 UserTask 是Activity 子类

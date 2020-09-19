@@ -25,7 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * @author Joram Barrez
  *  此类内部有 表达式管理器
- *  主要负责将 FeeldExtension 类型的集合 转化为 FeldDeclaration (activiti:ield 元素 )
+ *  主要负责将 FeeldExtension 类型的集合 转化为 FeldDeclaration (activiti:field 元素 )
  */
 public abstract class AbstractBehaviorFactory {
   /*

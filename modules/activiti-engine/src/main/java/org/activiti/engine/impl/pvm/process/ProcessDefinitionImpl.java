@@ -37,6 +37,9 @@ public class ProcessDefinitionImpl extends ScopeImpl implements PvmProcessDefini
   protected String name;
   protected String key;
   protected String description;
+  /*
+  * 封装了开始节点 的 ActivityImpl
+  * */
   protected ActivityImpl initial;
   protected Map<ActivityImpl, List<ActivityImpl>> initialActivityStacks = new HashMap<ActivityImpl, List<ActivityImpl>>();
   protected List<LaneSet> laneSets;

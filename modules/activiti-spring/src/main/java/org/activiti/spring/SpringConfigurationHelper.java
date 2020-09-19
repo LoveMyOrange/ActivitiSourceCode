@@ -33,7 +33,7 @@ public class SpringConfigurationHelper {
 
     private static Logger log = LoggerFactory.getLogger(SpringConfigurationHelper.class);
     /*
-
+        反射构造ProcessEngine
      */
     public static ProcessEngine buildProcessEngine(URL resource) {
         log.debug("==== BUILDING SPRING APPLICATION CONTEXT AND PROCESS ENGINE =========================================");
@@ -41,6 +41,7 @@ public class SpringConfigurationHelper {
         ApplicationContext applicationContext = new GenericXmlApplicationContext(new UrlResource(resource));
         /*
         获取类型为ProcessEngine的对象,
+
         如果activiti-context.xml 文件中没有定义类型为ProcessEngine的bean 则报错
 
         如果在activiti0context.xml中 配置了多个类型为ProcessEngine的bean

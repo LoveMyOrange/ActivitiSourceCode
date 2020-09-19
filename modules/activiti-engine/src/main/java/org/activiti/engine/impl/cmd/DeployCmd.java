@@ -56,9 +56,6 @@ public class DeployCmd<T> implements Command<Deployment>, Serializable {
      如果DB中已经存在 ,则不会重复部署
     repositoryService.createDeployment().enableDuplicateFiltering();
         具体如何过滤重复文档的???
-
-
-
      */
     if ( deploymentBuilder.isDuplicateFilterEnabled() ) {
     	
@@ -99,12 +96,13 @@ public class DeployCmd<T> implements Command<Deployment>, Serializable {
       }
       // 比较deployment 对象 已经存在的部署实体对象是否完全一样 ,如果 两个对象属性值完全一致 ,则不需要重新部署流程
       if ( (existingDeployment!=null)
+              //deploymentsDiffer用于对比 deployment对象 与 existingDeployment 对象是否相等,
            && !deploymentsDiffer(deployment, existingDeployment)) {
         return existingDeployment;
       }
     }
     /*
-    如果没有开启重复文档过滤功能, 则重新部署流程 设置isNew 为true 即可   true 表示可以进行部署操作
+    如果没有开启重复文档过滤功能, 则重新部署流程 设置isNew 为true 即可   true 表示文档是否可以进行部署操作
          该值决定了  流程文档是否可以进行部署操作
          既然 此值 可以设置为 true  ,那么什么情况下 设置为false 呢??
 
@@ -112,7 +110,7 @@ public class DeployCmd<T> implements Command<Deployment>, Serializable {
          例如 现在 开发人员要完成一个指定的任务 , 那么 当开发人员调用Activiti 提供的API 完成任务时
          引擎内部需要根据任务ID 值 查找当前任务节点的信息 ,  以及 该任务节点的活动行为类 ,目标节点等信息
          而以上 所说的信息值 都需要存储在 流程定义缓存中 ,
-         如果流程定义缓存 数据丢失 ,则需要 根据 任务 节点 id 值  从DB 中查询该 任务节点 id值
+         如果流程定义缓存 数据丢失 ,则需要 根据 任务 节点 id 值
          从DB 中查询该 任务节点 所归属的流程文档 (存储在ACT_GE_BYTEARRAY )
          以及流程定义信息(ACT_RE_PROCDEF)
          如果查询到了流程文档信息,则会再次调用 BpmnDeployer类中的deploy() 操作 流程文档

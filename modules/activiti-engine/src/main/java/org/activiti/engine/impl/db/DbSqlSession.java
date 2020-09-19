@@ -1559,9 +1559,10 @@ public class DbSqlSession implements Session {
    */
   public void performSchemaOperationsProcessEngineBuild() {
     /*
-    获取 设置的值
+    获取 设置的值--> 通过Context 获取到
      */
     String databaseSchemaUpdate = Context.getProcessEngineConfiguration().getDatabaseSchemaUpdate();
+    //根据 databaseSchemaUpdate 做以下逻辑 //////////////////////////
     //如果 属性值为drop-create
     if (ProcessEngineConfigurationImpl.DB_SCHEMA_UPDATE_DROP_CREATE.equals(databaseSchemaUpdate)) {
       try {
@@ -1571,7 +1572,7 @@ public class DbSqlSession implements Session {
         // ignore
       }
     }
-    //如果是 create-drop drop-create -create  调用dbSchemaCreate() 进行DB表的创建工作
+    //如果是 create-drop drop-create ,create 三者中的任意一个   调用dbSchemaCreate() 进行DB表的创建工作
     if ( org.activiti.engine.ProcessEngineConfiguration.DB_SCHEMA_UPDATE_CREATE_DROP.equals(databaseSchemaUpdate) 
          || ProcessEngineConfigurationImpl.DB_SCHEMA_UPDATE_DROP_CREATE.equals(databaseSchemaUpdate)
          || ProcessEngineConfigurationImpl.DB_SCHEMA_UPDATE_CREATE.equals(databaseSchemaUpdate)

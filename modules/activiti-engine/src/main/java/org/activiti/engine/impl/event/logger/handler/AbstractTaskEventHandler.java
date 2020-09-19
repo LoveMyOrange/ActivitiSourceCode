@@ -11,6 +11,9 @@ import org.activiti.engine.impl.persistence.entity.TaskEntity;
  *   继承  AbstractDatabaseEventLoggerEventHandler 同时作为  所有与任务相关的 事件处理类的父类 ,
  *   并定义了 模板()   handleCommonTaskFields
  *   	具体的实现类 有 3个
+ *   		TaskCreatedEventHandler  (创建任务)
+ *   		TaskCompleteedEventHandler  (完成任务)
+ *   		TaskAssignedEventHandler  (给任务分配处理人)
  *
  */
 public abstract class AbstractTaskEventHandler extends AbstractDatabaseEventLoggerEventHandler {

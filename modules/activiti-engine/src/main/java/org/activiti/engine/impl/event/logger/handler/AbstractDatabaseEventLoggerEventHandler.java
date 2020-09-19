@@ -52,7 +52,9 @@ public abstract class AbstractDatabaseEventLoggerEventHandler implements EventLo
 	    String processDefinitionId, String processInstanceId, String executionId,
 	    String taskId, Map<String, Object> data) {
 
+
 		EventLogEntryEntity eventLogEntry = new EventLogEntryEntity();
+		//为对象填充一系列的属性
 		eventLogEntry.setProcessDefinitionId(processDefinitionId);
 		eventLogEntry.setProcessInstanceId(processInstanceId);
 		eventLogEntry.setExecutionId(executionId);

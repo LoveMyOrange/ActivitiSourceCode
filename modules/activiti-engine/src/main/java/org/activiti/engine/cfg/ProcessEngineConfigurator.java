@@ -20,8 +20,8 @@ import org.activiti.engine.impl.cfg.ProcessEngineConfigurationImpl;
  * Such implementations can configure the engine in any way programmatically possible.
  * 
  * @author Joram Barrez
- * @desc
- *  该接口定义了 beforeInit()  在
+ * @desc  配置器顶层接口
+ *
  */
 public interface ProcessEngineConfigurator {
 	
@@ -70,3 +70,16 @@ public interface ProcessEngineConfigurator {
   int getPriority();
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

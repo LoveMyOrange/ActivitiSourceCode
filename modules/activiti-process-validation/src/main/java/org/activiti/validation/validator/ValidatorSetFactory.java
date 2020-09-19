@@ -43,7 +43,9 @@ import org.activiti.validation.validator.impl.UserTaskValidator;
  * @author jbarrez
  */
 public class ValidatorSetFactory {
-	
+	/*
+	* 这里面
+	* */
 	public ValidatorSet createActivitiExecutableProcessValidatorSet() {
 		ValidatorSet validatorSet = new ValidatorSet(ValidatorSetNames.ACTIVITI_EXECUTABLE_PROCESS);
 		
