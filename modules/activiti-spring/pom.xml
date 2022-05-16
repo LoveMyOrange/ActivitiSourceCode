@@ -160,7 +160,7 @@
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
-            <version>3.6.9.Final</version>
+            <version>5.4.24.Final</version>
             <scope>test</scope>
             <optional>true</optional>
         </dependency>
